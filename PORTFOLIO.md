@@ -23,6 +23,7 @@ When a PR merges, move it to the profile README and remove it here.
 | [#3391](https://github.com/huggingface/peft/pull/3391) | peft | `update_and_allocate` unreachable after `inject_adapter_in_model` | — |
 | [#6297](https://github.com/huggingface/trl/pull/6297) | trl | NaN logprobs crash in GRPO trainer with vLLM importance sampling | — |
 | [#2412](https://github.com/567-labs/instructor/pull/2412) | instructor | `Optional[NestedModel]` fields stored as raw dicts in streaming partials | — |
+| [#9979](https://github.com/stanfordnlp/dspy/pull/9979) | dspy | MIPROv2 silently discards hand-labeled demos — proposer sees "No task demos provided" | — |
 
 ### CI notes
 - **#32198, #32199** — LiteLLM benchmarks CI times out at GitHub's 15-min limit (CodSpeed). Not our code. Commented on both asking maintainer to rerun.
