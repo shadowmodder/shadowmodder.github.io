@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio — Sudhir Vissa</title>
+<meta name="description" content="ML/LLM engineering portfolio: upstream contributions to production ML libraries, technical writing, and open source tools.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+  .site-header nav a.active { color: var(--text); }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  .hero { margin-bottom: 56px; }
+  .hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+  .hero p { color: var(--muted); font-size: 15px; max-width: 560px; line-height: 1.75; }
+  .hero .links { margin-top: 18px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .hero .links a { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+  .hero .links a:hover { color: var(--accent); text-decoration: none; }
+
+  .section { margin-bottom: 64px; }
+  .section-title { font-size: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+  /* PR cards */
+  .pr-list { display: flex; flex-direction: column; gap: 12px; }
+  .pr-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; display: flex; align-items: flex-start; gap: 16px; transition: border-color .15s; }
+  .pr-card:hover { border-color: #58a6ff44; }
+  .pr-badge { flex-shrink: 0; margin-top: 2px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; }
+  .badge.open { background: #1a3a1e; color: var(--green); border: 1px solid #2d5a30; }
+  .badge.merged { background: #2d1f54; color: #a78bfa; border: 1px solid #4a3080; }
+  .badge.pending { background: #2a2210; color: var(--yellow); border: 1px solid #4a3a10; }
+  .pr-body { flex: 1; min-width: 0; }
+  .pr-body .pr-repo { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-family: "SF Mono", "Cascadia Code", monospace; }
+  .pr-body .pr-title { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.4; }
+  .pr-body .pr-title a { color: var(--text); }
+  .pr-body .pr-title a:hover { color: var(--accent); text-decoration: none; }
+  .pr-body .pr-desc { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* Writing cards */
+  .post-list { display: flex; flex-direction: column; gap: 12px; }
+  .post-card { border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; transition: border-color .15s; }
+  .post-card:hover { border-color: #58a6ff66; }
+  .post-card .tags { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .post-card .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .post-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .post-card h3 a { color: var(--text); }
+  .post-card h3 a:hover { color: var(--accent); text-decoration: none; }
+  .post-card p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+  /* Repo tables */
+  .repo-group { margin-bottom: 32px; }
+  .repo-group-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .repo-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .repo-table td { padding: 9px 12px; border-bottom: 1px solid #21262d; vertical-align: top; }
+  .repo-table tr:last-child td { border-bottom: none; }
+  .repo-table td:first-child { white-space: nowrap; width: 200px; }
+  .repo-table td:first-child a { font-family: "SF Mono", "Cascadia Code", monospace; font-size: 12px; }
+  .repo-table td:last-child { color: var(--muted); }
+
+  @media (max-width: 600px) {
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .hero h1 { font-size: 22px; }
+    .pr-card { flex-direction: column; gap: 8px; }
+    .repo-table td:first-child { width: auto; white-space: normal; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="/portfolio.html" class="active">Portfolio</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Portfolio</h1>
+    <p>ML/LLM engineer focused on the parts that actually decide whether ML works in production — evaluation, calibration, thresholds, drift, serving, and agentic systems. 20+ years, ~50 patents.</p>
+    <div class="links">
+      <a href="https://github.com/shadowmodder">⬡ github.com/shadowmodder</a>
+      <a href="https://linkedin.com/in/sudhirvissa">in linkedin.com/in/sudhirvissa</a>
+      <a href="/">✍ Blog</a>
+    </div>
+  </div>
+
+  <!-- UPSTREAM CONTRIBUTIONS -->
+  <div class="section">
+    <div class="section-title">Upstream contributions</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Bug fixes to production ML/LLM libraries used by millions of developers. All PRs include reproduction case and regression tests.</p>
+    <div class="pr-list">
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">vllm-project/vllm · #47662</div>
+          <div class="pr-title"><a href="https://github.com/vllm-project/vllm/pull/47662"><code>/v1/responses</code> endpoint rejects valid <code>input_audio</code> content parts with 422</a></div>
+          <div class="pr-desc">The Responses API accepted text/image but silently excluded <code>ResponseInputAudioParam</code> from its Pydantic union, rejecting any audio-bearing message at validation time — while the chat completions endpoint accepted identical payloads. Fix: extended the union with an audio-capable TypedDict variant.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">stanfordnlp/dspy · #9979</div>
+          <div class="pr-title"><a href="https://github.com/stanfordnlp/dspy/pull/9979">MIPROv2 silently discards hand-labeled demos — proposer sees "No task demos provided"</a></div>
+          <div class="pr-desc">The <code>gather_examples_from_sets</code> helper filtered for the <code>"augmented"</code> key, which only exists on LLM-bootstrapped demos. Hand-labeled training examples never carry it, so they were dropped silently. The optimizer then generated instructions without ever seeing the user's labeled data.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">567-labs/instructor · #2412</div>
+          <div class="pr-title"><a href="https://github.com/567-labs/instructor/pull/2412"><code>Optional[NestedModel]</code> fields stored as raw dicts in streaming partial objects</a></div>
+          <div class="pr-desc"><code>_build_partial_object</code> used <code>isinstance(field_type, type)</code> to decide whether to recurse into a nested model. That guard returns <code>False</code> for <code>Optional[NestedModel]</code> (a generic alias, not a <code>type</code>), so those fields were stored as raw dicts — causing <code>AttributeError</code> mid-stream when code accessed <code>chunk.inner.some_field</code>.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">huggingface/trl · #6297</div>
+          <div class="pr-title"><a href="https://github.com/huggingface/trl/pull/6297">NaN logprobs crash in GRPO trainer when using vLLM importance sampling</a></div>
+          <div class="pr-desc">vLLM emits NaN for near-deterministic tokens. <code>extract_logprobs()</code> converted these to <code>None</code>, then <code>torch.tensor([None])</code> raised <code>TypeError</code>. Fix: convert <code>None</code> to <code>nan</code> before tensor construction, use <code>torch.where</code> for neutral importance-sampling weights.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">huggingface/peft · #3391</div>
+          <div class="pr-title"><a href="https://github.com/huggingface/peft/pull/3391"><code>update_and_allocate</code> unreachable after <code>inject_adapter_in_model</code></a></div>
+          <div class="pr-desc"><code>inject_adapter_in_model()</code> returned the bare inner <code>nn.Module</code>, stripping the <code>AdaLoraModel</code> wrapper that holds <code>update_and_allocate</code>. Calling it afterward raised <code>AttributeError</code>, silently breaking AdaLoRA's rank-reallocation schedule.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #32205</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32205"><code>previous_response_id</code> double-encoded in MCP tool loops</a></div>
+          <div class="pr-desc"><code>_update_responses_api_response_id_with_model_id</code> was not idempotent — repeated calls in MCP tool loops applied base64+URL encoding twice, producing ~730-char IDs that are rejected by downstream API calls.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #32200</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32200">Async cache streaming drops <code>reasoning_content</code></a></div>
+          <div class="pr-desc">When serving a cached response as a stream, the async path reconstructed chunks from the stored message but never forwarded <code>reasoning_content</code>. Applications relying on chain-of-thought tokens received empty strings silently.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #32199</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32199"><code>reasoning_tokens</code> forced to <code>0</code> in Responses API proxy</a></div>
+          <div class="pr-desc">The Responses API proxy hardcoded <code>reasoning_tokens: 0</code> in the usage block regardless of the actual token count returned by the upstream model. Downstream cost attribution and budget tracking silently received wrong values.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #32198</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32198"><code>stream_chunk_builder</code> KeyError on missing <code>choices</code></a></div>
+          <div class="pr-desc">Certain streaming providers emit non-choice chunks (heartbeats, metadata). <code>stream_chunk_builder</code> indexed <code>chunk["choices"]</code> unconditionally, raising <code>KeyError</code> and aborting the entire stream.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">vibrantlabsai/ragas · #2816</div>
+          <div class="pr-title"><a href="https://github.com/vibrantlabsai/ragas/pull/2816">Add NDCG, MRR, Precision@K, and Recall@K retrieval metrics</a></div>
+          <div class="pr-desc">Added four standard IR evaluation metrics — NDCG@K, MRR, P@K, R@K — to the ragas retrieval evaluation suite. Ragas previously only supported context precision/recall; these enable proper ranking evaluation for RAG pipelines.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">EleutherAI/lm-evaluation-harness · #3913</div>
+          <div class="pr-title"><a href="https://github.com/EleutherAI/lm-evaluation-harness/pull/3913">Add ECE and RMS calibration metrics</a></div>
+          <div class="pr-desc">Added Expected Calibration Error (ECE) and Root Mean Squared calibration error to lm-evaluation-harness. Previously the harness measured accuracy but had no way to evaluate whether model confidence scores were probabilistically meaningful.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge pending">⏳ Pending</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">langchain-ai/langchain · issue #38679</div>
+          <div class="pr-title"><a href="https://github.com/langchain-ai/langchain/issues/38679">Streaming tool call fires prematurely with empty args (awaiting maintainer assignment)</a></div>
+          <div class="pr-desc"><code>AIMessageChunk.init_tool_calls</code> treats <code>args=""</code> (stream in progress) identically to <code>args=None</code> (field absent), resolving both to <code>{}</code> and firing the tool call before arguments have arrived. Fix ready; LangChain requires issue assignment before a PR will be accepted.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- WRITING -->
+  <div class="section">
+    <div class="section-title">Writing</div>
+    <div class="post-list">
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">fine-tuning</span><span class="tag">LoRA</span><span class="tag">RAG</span><span class="tag">prompting</span></div>
+        <h3><a href="/posts/finetuning-vs-prompting.html">Fine-Tuning vs. Prompting: A Decision Framework That Doesn't Lie to You</a></h3>
+        <p>The real decision tree — do you have labeled data, is the task format-sensitive or knowledge-sensitive, have you hit the cost crossover? With the breakeven formula, LoRA vs. RAG tradeoffs, and the data requirements teams consistently underestimate.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">streaming</span><span class="tag">SSE</span><span class="tag">LangChain</span><span class="tag">production</span></div>
+        <h3><a href="/posts/streaming-llms-production.html">Streaming LLMs in Production: The Edge Cases That Break Your App</a></h3>
+        <p>SSE framing, proxy buffering, backpressure on slow clients, incomplete JSON from tool calls, reconnection replay, TTFT measurement, and the timeout misconfiguration that kills every long generation.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">LLM</span><span class="tag">rate limiting</span><span class="tag">cost</span><span class="tag">caching</span></div>
+        <h3><a href="/posts/llm-gateway-production.html">Running an LLM Gateway in Production</a></h3>
+        <p>Token bucket mechanics, full-jitter backoff, prompt caching economics, and a concrete cost model for handling 429s, transient 5xx errors, cost overruns, and cold-start latency spikes at scale.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">RAG</span><span class="tag">NDCG</span><span class="tag">MRR</span><span class="tag">IR metrics</span></div>
+        <h3><a href="/posts/rag-retrieval-isnt-similarity.html">RAG Retrieval Isn't a Similarity Problem</a></h3>
+        <p>Why cosine similarity is the wrong objective for retrieval quality. NDCG, MRR, P@K, R@K explained — and how to actually measure whether your retriever is improving your answers.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">calibration</span><span class="tag">production ML</span><span class="tag">fraud</span></div>
+        <h3><a href="/posts/calibration-in-production.html">Your Fraud Model's Scores Are Not Probabilities</a></h3>
+        <p>Most deployed risk models output scores that are monotonically correct but probabilistically wrong. ECE, RMS calibration error, reliability diagrams, Platt scaling, and why your threshold sweep is lying to you.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- OPEN SOURCE REPOS -->
+  <div class="section">
+    <div class="section-title">Open source</div>
+
+    <div class="repo-group">
+      <div class="repo-group-title">Agentic &amp; LLM infrastructure</div>
+      <table class="repo-table">
+        <tr><td><a href="https://github.com/shadowmodder/tool-loop">tool-loop</a></td><td>Correct agentic tool-use loop: parallel dispatch, error isolation, auto-schema from Python functions</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/mcp-quickserver">mcp-quickserver</a></td><td>MCP server template: tools, resources, and prompts with stdio and SSE transports</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/stream-parse">stream-parse</a></td><td>Parse streaming LLM output: incremental JSON, markdown blocks, tool-call deltas, SSE events</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/agent-scratchpad">agent-scratchpad</a></td><td>Persistent vector memory for agents: embed, store, retrieve by cosine similarity</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/prompt-cache-bench">prompt-cache-bench</a></td><td>Benchmark prompt caching: cache hit rate, latency delta, cost savings with real measurements</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/llm-eval-lite">llm-eval-lite</a></td><td>Assertion-based eval harness for LLM/agent outputs; composite checks (AllOf, AnyOf)</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/rag-eval">rag-eval</a></td><td>RAG pipeline evaluation: chunking strategies, retrieval quality, answer faithfulness</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/llm-gateway">llm-gateway</a></td><td>Production Anthropic API proxy: token-bucket rate limiting, retry with backoff, cost tracking</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/rag-demo">rag-demo</a></td><td>End-to-end RAG demo: BM25 + tool-loop agent + faithfulness eval + persistent memory</td></tr>
+      </table>
+    </div>
+
+    <div class="repo-group">
+      <div class="repo-group-title">ML evaluation &amp; calibration</div>
+      <table class="repo-table">
+        <tr><td><a href="https://github.com/shadowmodder/ml-eval-report">ml-eval-report</a></td><td>Binary-classifier eval: metrics, ROC/PR + AUC, threshold sweep, Brier score, ECE</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/calibrate-ml">calibrate-ml</a></td><td>Probability calibration: Platt scaling, isotonic regression, ECE, reliability diagram</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/thresholdkit">thresholdkit</a></td><td>Pick operating thresholds under precision / FPR / cost / expected-value constraints</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/rankeval">rankeval</a></td><td>NDCG, MRR, AP@K, P@K, R@K — ranking metrics for search, recommendation, RAG</td></tr>
+      </table>
+    </div>
+
+    <div class="repo-group">
+      <div class="repo-group-title">Production ML &amp; data</div>
+      <table class="repo-table">
+        <tr><td><a href="https://github.com/shadowmodder/featurecheck">featurecheck</a></td><td>Feature drift (PSI/KS/chi-squared) + schema/null/dtype validation</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/idgraph">idgraph</a></td><td>Identity/entity graphs from shared signals; surface synthetic-identity rings + risk scoring</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/pii-redactor">pii-redactor</a></td><td>Detect &amp; redact PII (email, phone, SSN, IP, Luhn-validated cards); custom patterns</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/capture-qa">capture-qa</a></td><td>Image capture-quality gates (sharpness, exposure, resolution)</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/modelcard-gen">modelcard-gen</a></td><td>Generate Model Card markdown from a JSON config</td></tr>
+      </table>
+    </div>
+
+    <div class="repo-group">
+      <div class="repo-group-title">Systems &amp; infrastructure</div>
+      <table class="repo-table">
+        <tr><td><a href="https://github.com/shadowmodder/tps-bench">tps-bench</a></td><td>HTTP throughput &amp; p50/p90/p99 latency benchmark for serving endpoints; warmup + JSON output</td></tr>
+        <tr><td><a href="https://github.com/shadowmodder/cmsketch">cmsketch</a></td><td>Count-Min Sketch: approximate counts over high-cardinality streams; merge + serialization</td></tr>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
