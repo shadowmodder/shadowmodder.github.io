@@ -1,32 +1,59 @@
-# Session Notes
+# Portfolio Tracker
 
-The canonical portfolio lives at **[github.com/shadowmodder](https://github.com/shadowmodder)** (the profile README). That's the single source of truth for repos, PRs, and blog posts. Update it, not this file.
+**Canonical profile:** [github.com/shadowmodder](https://github.com/shadowmodder) — repos, merged PRs, blog links  
+**This file:** Active open PRs under review + session ops notes  
+**LinkedIn:** [linkedin.com/in/sudhirvissa](https://linkedin.com/in/sudhirvissa)  
+**Blog:** [shadowmodder.github.io](https://shadowmodder.github.io)
 
 ---
 
-## Active PRs — quick reference
+## Active PRs — under review
 
-| PR | Repo | Notes |
+When a PR merges, move it to the profile README and remove it here.
+
+| PR | Repo | Bug fixed | LinkedIn post |
+|---|---|---|---|
+| [#3913](https://github.com/EleutherAI/lm-evaluation-harness/pull/3913) | lm-evaluation-harness | ECE + RMS calibration metrics | — |
+| [#2816](https://github.com/vibrantlabsai/ragas/pull/2816) | ragas | NDCG, MRR, Precision@K, Recall@K retrieval metrics | [post](https://www.linkedin.com/feed/update/urn:li:share:7479612239688433665/) |
+| [#32198](https://github.com/BerriAI/litellm/pull/32198) | litellm | `stream_chunk_builder` KeyError on missing `choices` | — |
+| [#32199](https://github.com/BerriAI/litellm/pull/32199) | litellm | `reasoning_tokens` forced to `0` in Responses API proxy | — |
+| [#32200](https://github.com/BerriAI/litellm/pull/32200) | litellm | Async cache streaming drops `reasoning_content` | — |
+| [#32205](https://github.com/BerriAI/litellm/pull/32205) | litellm | `previous_response_id` double-encoded in MCP tool loops | — |
+| [issue #38679](https://github.com/langchain-ai/langchain/issues/38679) | langchain | Streaming tool call fires prematurely with empty args | [post](https://www.linkedin.com/posts/sudhirvissa_langchain-llm-opensource-activity-7346287543816716288-) |
+| [#3391](https://github.com/huggingface/peft/pull/3391) | peft | `update_and_allocate` unreachable after `inject_adapter_in_model` | — |
+| [#6297](https://github.com/huggingface/trl/pull/6297) | trl | NaN logprobs crash in GRPO trainer with vLLM importance sampling | — |
+| [#2412](https://github.com/567-labs/instructor/pull/2412) | instructor | `Optional[NestedModel]` fields stored as raw dicts in streaming partials | — |
+
+### CI notes
+- **#32198, #32199** — LiteLLM benchmarks CI times out at GitHub's 15-min limit (CodSpeed). Not our code. Commented on both asking maintainer to rerun.
+- **LangChain** — Requires maintainer assignment before PR accepted. Issue #38679 open, approach commented, waiting for assignment. Fix is ready in fork branch `fix/streaming-tool-call-empty-args-sse-fragmentation`.
+- **#6297** — Resubmit of #6296 (auto-closed: wrong PR template). Now uses full TRL template.
+
+---
+
+## Blog posts
+
+| Post | URL | LinkedIn post |
 |---|---|---|
-| [#3913](https://github.com/EleutherAI/lm-evaluation-harness/pull/3913) | lm-evaluation-harness | |
-| [#2816](https://github.com/vibrantlabsai/ragas/pull/2816) | ragas | |
-| [#32198](https://github.com/BerriAI/litellm/pull/32198) | litellm | Benchmarks CI timeout — not our code. Commented asking maintainer to rerun. |
-| [#32199](https://github.com/BerriAI/litellm/pull/32199) | litellm | Same benchmarks timeout. |
-| [#32200](https://github.com/BerriAI/litellm/pull/32200) | litellm | |
-| [#32205](https://github.com/BerriAI/litellm/pull/32205) | litellm | |
-| [#38680](https://github.com/langchain-ai/langchain/pull/38680) | langchain | Resubmit of #38678 (auto-closed: no issue). Links to issue #38679. |
-| [#3391](https://github.com/huggingface/peft/pull/3391) | peft | |
-| [#6297](https://github.com/huggingface/trl/pull/6297) | trl | Resubmit of #6296 (auto-closed: wrong template). |
+| Your Fraud Model's Scores Are Not Probabilities | [link](https://shadowmodder.github.io/posts/calibration-in-production.html) | [post](https://www.linkedin.com/feed/update/urn:li:share:7479612239688433665/) |
+| RAG Retrieval Isn't a Similarity Problem | [link](https://shadowmodder.github.io/posts/rag-retrieval-isnt-similarity.html) | [post](https://www.linkedin.com/posts/sudhirvissa_rag-llm-machinelearning-activity-7346287105668108288-) |
+| Running an LLM Gateway in Production | [link](https://shadowmodder.github.io/posts/llm-gateway-production.html) | [post](https://www.linkedin.com/posts/sudhirvissa_llm-mlops-aiinfrastructure-activity-7346287277908844544-) |
+| Streaming LLMs in Production | [link](https://shadowmodder.github.io/posts/streaming-llms-production.html) | [post](https://www.linkedin.com/posts/sudhirvissa_llm-mlops-python-activity-7346287476332371968-) · [post 2](https://www.linkedin.com/posts/sudhirvissa_langchain-llm-opensource-activity-7346287543816716288-) |
+| Fine-Tuning vs. Prompting | [link](https://shadowmodder.github.io/posts/finetuning-vs-prompting.html) | [post](https://www.linkedin.com/posts/sudhirvissa_llm-finetuning-machinelearning-activity-7346287610684338176-) |
+
+---
 
 ## Blog repo ops
 
-- Commits go to `master`. GitHub Pages serves from `main`.
-- Always push both: `git push origin master && git push origin master:main`
-- New posts go in `posts/`, update `index.html` to add card at top of list.
+- Commits go to `master`. Pages serves from `main`. Always push both:
+  ```
+  git push origin master && git push origin master:main
+  ```
+- New posts: add HTML to `posts/`, add card at top of `index.html`.
 
 ## Investigated — no PR needed
 
-| Repo | Issue | Reason |
+| Repo | Issue | Finding |
 |---|---|---|
 | UKPLab/sentence-transformers | #3722 | Fixed in PR #3792 (June 2026) |
 | BerriAI/litellm | #32004 | Already fixed in current codebase |
