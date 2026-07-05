@@ -23,7 +23,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install ruff
-        run: pip install ruff --quiet
+        run: pip install "ruff==0.15.3" --quiet
 
       - name: Monitor PRs and auto-fix lint
         env:
