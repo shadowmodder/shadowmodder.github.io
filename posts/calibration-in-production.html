@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Fraud Model's Scores Are Not Probabilities — Sudhir Vissa</title>
+<meta name="description" content="Most deployed risk models output scores that are monotonically correct but probabilistically wrong. Here's why it matters and what to do about it.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:last-child td { border-bottom: none; }
+  .good { color: var(--green); font-weight: 500; }
+  .bad { color: var(--red); font-weight: 500; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  .repo-link { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+  .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a href="/" class="back-link">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">calibration</span>
+      <span class="tag">production ML</span>
+      <span class="tag">fraud</span>
+      <span class="tag">risk models</span>
+    </div>
+    <h1>Your Fraud Model's Scores Are Not Probabilities</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; 8 min read</div>
+  </div>
+
+  <article>
+
+    <p>A fraud model trained on last year's data ships with a score threshold of 0.65. Six months later, fraud rates shift. A product manager asks: "at score 0.8, what's our expected false positive rate?" An ops team wants to build a cost model: "if we automatically block scores above 0.75, what does that cost us in declined good transactions?" A downstream system weights its decision by <code>1 - fraud_score</code>.</p>
+
+    <p>All of these questions assume the model's output is a probability. Almost certainly, it isn't.</p>
+
+    <h2>Why raw scores aren't probabilities</h2>
+
+    <p>Most classifiers — gradient boosted trees, neural nets, logistic regression with regularization — are optimized for ranking, not probability estimation. The training objective pushes fraud cases above non-fraud cases. It does not push the output distribution to match observed event rates.</p>
+
+    <p>The result: a model can have near-perfect AUC while being systematically wrong about the magnitude of its scores. A score of 0.8 might correspond to 40% empirical fraud rate. Or 2%. The model doesn't know. Neither do you, until you measure it.</p>
+
+    <div class="callout">
+      <strong>The practical symptom</strong>: you set a threshold in staging, where class balance matches training data. In production, the same threshold behaves differently — not because the model degraded, but because the implied probability was never real to begin with.
+    </div>
+
+    <h3>A quick check: the reliability diagram</h3>
+
+    <p>Bin your held-out predictions into deciles. For each bin, plot mean predicted score against mean actual outcome rate. A perfectly calibrated model produces points along the diagonal. Most production models look like this instead:</p>
+
+    <div class="fig">
+      <div class="label">Reliability diagram — typical uncalibrated fraud model</div>
+<pre>Actual
+fraud    1.0 ┤                                              ●
+rate         │                                         ●
+         0.8 ┤                                    ●
+             │         ····················
+         0.6 ┤              ·           ●
+             │          ·
+         0.4 ┤       ·          ●
+             │     ·
+         0.2 ┤   ·    ●    ●
+             │  ·  ●
+         0.0 ┼──────────────────────────────────────────────
+             0.0  0.2  0.4  0.6  0.8  1.0   Predicted score
+
+····  = perfect calibration (diagonal)
+●     = model's actual bins</pre>
+    </div>
+
+    <p>The S-curve shape is typical of gradient boosted trees: overconfident in the middle, underconfident at the extremes. Logistic regression tends to go the other way. The exact shape depends on training data balance, regularization strength, and feature distributions — not on whether your model is "good."</p>
+
+    <h2>What miscalibration actually costs</h2>
+
+    <p>In isolation, miscalibration is invisible. AUC doesn't catch it. Precision and recall at a single threshold don't catch it. You only see it when you:</p>
+
+    <ul>
+      <li><strong>Use scores as inputs to a downstream system</strong> — a rules engine, a cost model, a human review queue prioritizer — that treats them as probabilities</li>
+      <li><strong>Compare thresholds across cohorts</strong> — score 0.7 in the US vs. score 0.7 in a new market where base rates differ</li>
+      <li><strong>Reuse a threshold after a data shift</strong> — the threshold was set when fraud rate was 1.2%; now it's 0.6%; the same threshold now behaves differently even if the model's ranking is unchanged</li>
+      <li><strong>Run expected-value calculations</strong> — "block if <code>P(fraud) × transaction_value > review_cost</code>" — where P(fraud) is read directly from the model output</li>
+    </ul>
+
+    <p>The last one is especially common. It's also where the error compounds: a 2× miscalibration in the score translates to a 2× error in expected loss, which breaks the decision boundary entirely.</p>
+
+    <h2>Two calibration methods and when to use each</h2>
+
+    <h3>Platt scaling</h3>
+
+    <p>Fit a logistic regression on a held-out calibration set, using the model's raw score as the only feature:</p>
+
+    <pre><code>from sklearn.linear_model import LogisticRegression
+
+cal = LogisticRegression()
+cal.fit(val_scores.reshape(-1, 1), val_labels)
+calibrated_probs = cal.predict_proba(test_scores.reshape(-1, 1))[:, 1]</code></pre>
+
+    <p>The output is guaranteed to be in [0, 1] and is monotone in the input. The assumption: the miscalibration is sigmoid-shaped — symmetric around some midpoint. This is usually approximately true for scores that come from a single well-trained model.</p>
+
+    <p><strong>Use when</strong>: you have limited calibration data (a few thousand examples), the model is a single estimator, and you want a simple, auditable fix.</p>
+
+    <h3>Isotonic regression</h3>
+
+    <p>Fit a non-decreasing step function instead of a sigmoid:</p>
+
+    <pre><code>from sklearn.isotonic import IsotonicRegression
+
+cal = IsotonicRegression(out_of_bounds="clip")
+cal.fit(val_scores, val_labels)
+calibrated_probs = cal.predict(test_scores)</code></pre>
+
+    <p>No parametric assumption. Can fit any monotone relationship between score and outcome rate. The cost: it has more degrees of freedom and will overfit on small calibration sets. Cross-validate on a held-out split — not the training data, not the eval set you measured AUC on.</p>
+
+    <p><strong>Use when</strong>: you have a large calibration set (tens of thousands), the model's miscalibration is nonlinear or asymmetric, or you're calibrating an ensemble whose score distribution is irregular.</p>
+
+    <h3>The result</h3>
+
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Before</th><th>After (Platt)</th><th>After (Isotonic)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Brier score</td><td class="bad">0.142</td><td class="good">0.089</td><td class="good">0.081</td></tr>
+        <tr><td>ECE (10 bins)</td><td class="bad">0.118</td><td class="good">0.023</td><td class="good">0.019</td></tr>
+        <tr><td>Log loss</td><td class="bad">0.431</td><td class="good">0.298</td><td class="good">0.287</td></tr>
+        <tr><td>AUC-ROC</td><td>0.934</td><td>0.934</td><td>0.934</td></tr>
+      </tbody>
+    </table>
+
+    <p>AUC is unchanged — calibration is a monotone transform, so it cannot affect ranking. But Brier score drops by 37% and ECE drops by 80%. The model now means what it says.</p>
+
+    <h2>The part people skip: measuring calibration in production</h2>
+
+    <p>Calibration degrades silently. The model's ranking quality — AUC — can stay flat while the calibration drifts, because ranking only requires the order to be preserved. A score shift of +0.1 across the board doesn't change a single AUC calculation. It does change every threshold decision and every downstream expected-value calculation.</p>
+
+    <p>The right monitoring setup: track ECE on a rolling window of labeled outcomes. Outcomes arrive with delay in fraud (chargebacks take 30–90 days), so you need a lagged monitoring pipeline. When ECE rises above some threshold, trigger recalibration — not retraining. Recalibration is cheap. You're fitting two parameters (Platt) or a step function (isotonic) on recent data. You don't need to retrain the base model.</p>
+
+    <div class="callout">
+      <strong>A practical signal</strong>: if your operational fraud rate drifts but your model's score distribution stays flat, you almost certainly have a calibration problem, not a concept drift problem. The two look identical in score histograms but have different remedies.
+    </div>
+
+    <h2>Cohort calibration: the harder problem</h2>
+
+    <p>A model calibrated on the overall population may be miscalibrated on subpopulations. A fraud model trained on US transactions may have well-calibrated scores in aggregate while systematically underscoring fraud in a new geography where the feature distributions differ. The base model is not wrong — its ranking may still be good — but the implied probabilities are wrong for that cohort.</p>
+
+    <p>The fix is the same: fit a separate calibrator per cohort on recent labeled data from that cohort. This requires enough labels per cohort, which is the real constraint. If a cohort is too small for reliable calibration, fall back to the global calibrator and flag the uncertainty.</p>
+
+    <h2>Implementation</h2>
+
+    <p>The calibration code behind this post is in <a href="https://github.com/shadowmodder/calibrate-ml">calibrate-ml</a>: Platt scaling, isotonic regression, ECE computation, and reliability diagram generation. The companion eval repo, <a href="https://github.com/shadowmodder/ml-eval-report">ml-eval-report</a>, handles Brier score, log loss, and the full threshold sweep.</p>
+
+    <a href="https://github.com/shadowmodder/calibrate-ml" class="repo-link">
+      ↗ shadowmodder/calibrate-ml
+    </a>
+
+    <p>The most important thing: run this on your current production model before doing anything else. The reliability diagram takes ten lines of code and a held-out labeled dataset. If the points are on the diagonal, you're fine. If they're not — and they usually aren't — you now know what you're dealing with.</p>
+
+  </article>
+</div>
+
+</body>
+</html>
