@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Hidden Tax of LLM API Calls: Rate Limits, Retries, and Cost Leaks — Sudhir Vissa</title>
+<meta name="description" content="Every LLM integration hits the same four failure modes. Here's the engineering needed to handle rate limits, retries, prompt caching economics, and cost control at scale.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:last-child td { border-bottom: none; }
+  .good { color: var(--green); font-weight: 500; }
+  .bad { color: var(--red); font-weight: 500; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  .repo-link { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+  .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a href="/" class="back-link">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">LLM</span>
+      <span class="tag">infrastructure</span>
+      <span class="tag">cost optimization</span>
+      <span class="tag">production</span>
+    </div>
+    <h1>The Hidden Tax of LLM API Calls: Rate Limits, Retries, and Cost Leaks</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; 9 min read</div>
+  </div>
+
+  <article>
+
+    <p>You integrate an LLM API. The first thousand calls work. You put it in production. Within a week you're debugging a mix of 429s during traffic spikes, a background job that burned $800 overnight because the prompt was larger than you thought, and an on-call alert about P99 latency jumping to 12 seconds on cold start.</p>
+
+    <p>None of this is surprising once you've seen it. All of it is avoidable. But the gap between "it works in development" and "it works reliably at 10k calls per day" requires engineering that most LLM integration guides never cover.</p>
+
+    <h2>The four failure modes every LLM integration hits</h2>
+
+    <p>In rough order of when you encounter them:</p>
+
+    <ol>
+      <li><strong>Rate limit 429s</strong>: you hit the provider's token-per-minute or requests-per-minute ceiling. Traffic spikes, batch jobs, and concurrent user sessions all cause this. Naive retry logic makes it dramatically worse.</li>
+      <li><strong>Transient 5xx errors</strong>: provider-side infrastructure errors. These are usually short-lived (seconds to a few minutes) and require retry with backoff. The mistake is treating them the same as 429s — they're not.</li>
+      <li><strong>Cost overruns</strong>: token counts are larger than expected (long conversation histories, verbose system prompts, RAG context stuffing). You discover this on your billing dashboard, not in your error logs.</li>
+      <li><strong>Cold-start latency spikes</strong>: the first call to a low-traffic endpoint, or calls after a period of inactivity, takes 3–5× longer than steady-state. Users see timeouts; your p50 looks fine; your p99 looks like an incident.</li>
+    </ol>
+
+    <p>Each failure mode has a different root cause and a different fix. The most common mistake is applying one strategy — usually "retry with sleep" — to all four and wondering why things aren't getting better.</p>
+
+    <h2>Token bucket rate limiting: how the ceiling works</h2>
+
+    <p>Provider rate limits are implemented as token buckets. The bucket has a capacity (maximum burst) and a refill rate (tokens per minute). Each API call consumes from the bucket proportionally to the tokens used. When the bucket is empty, the API returns 429.</p>
+
+    <div class="fig">
+      <div class="label">Token bucket — steady state vs. burst</div>
+<pre>Bucket capacity: 100,000 tokens
+Refill rate: 100,000 tokens/minute (1,667 tokens/second)
+
+<span class="hi">Steady state (1 call/sec, avg 500 tokens):</span>
+  Consumption: 500 tokens/sec
+  Refill:     1,667 tokens/sec
+  Net:        +1,167 tokens/sec → bucket stays full ✓
+
+<span class="bad">Burst (50 calls/sec, avg 2,000 tokens):</span>
+  Consumption: 100,000 tokens/sec
+  Refill:      1,667 tokens/sec
+  Net:        -98,333 tokens/sec → bucket empties in ~1 second ✗
+  Then:       429s until bucket refills (~60 seconds)</pre>
+    </div>
+
+    <p>The trap: when you hit a 429 and sleep for a fixed interval (say, 5 seconds), then retry — your retry fires at the same time as every other thread that also slept 5 seconds. You've synchronized your retries into a thundering herd. The next wave of requests hits the API simultaneously, depletes the bucket again immediately, and you get another 429. You can cycle through this pattern for minutes, making the outage worse with every retry attempt.</p>
+
+    <h2>Exponential backoff with full jitter: the only retry strategy that doesn't make 429s worse</h2>
+
+    <p>The fix is exponential backoff with full jitter. The backoff time grows exponentially with each retry attempt, and the jitter randomizes the actual wait time within that window. This de-synchronizes your retries so they don't all fire at once.</p>
+
+    <pre><code>import random
+import time
+
+def backoff_with_jitter(
+    attempt: int,
+    base_delay: float = 1.0,
+    max_delay: float = 60.0,
+    multiplier: float = 2.0,
+) -> float:
+    """Full jitter: uniform random in [0, cap]."""
+    cap = min(max_delay, base_delay * (multiplier ** attempt))
+    return random.uniform(0, cap)
+
+def call_with_retry(fn, max_attempts: int = 5):
+    for attempt in range(max_attempts):
+        try:
+            return fn()
+        except RateLimitError:
+            if attempt == max_attempts - 1:
+                raise
+            wait = backoff_with_jitter(attempt)
+            time.sleep(wait)
+        except TransientError:
+            if attempt == max_attempts - 1:
+                raise
+            # Shorter backoff for 5xx — these usually clear fast
+            wait = backoff_with_jitter(attempt, base_delay=0.5, max_delay=10.0)
+            time.sleep(wait)</code></pre>
+
+    <p>Full jitter (uniform random over [0, cap]) outperforms equal jitter (cap/2 ± random) and decorrelated jitter in simulations of thundering herd scenarios. The math: if N threads all receive 429 at time T, full jitter distributes their retries uniformly across [0, cap]. Equal jitter clusters them in the upper half. Full jitter minimizes the probability that any two threads retry simultaneously.</p>
+
+    <p>Critical distinction: <strong>429 and 5xx are different errors with different backoff parameters</strong>. A 429 means the rate limit bucket is empty — it will refill at the provider's refill rate, which is predictable. A 5xx means a transient infrastructure failure — it usually resolves in seconds. Use a longer backoff ceiling for 429s (up to 60 seconds) and a shorter one for 5xx (up to 10 seconds). Conflating them causes you to either wait too long for 5xx errors or not long enough for rate limits.</p>
+
+    <div class="callout">
+      <strong>Read the Retry-After header</strong>: when providers return 429, they often include a <code>Retry-After</code> header specifying how many seconds to wait. When present, use it instead of computing your own backoff — it's more accurate and avoids the exponential growth that occurs when you're already over the limit.
+    </div>
+
+    <h2>Prompt caching economics: the breakeven formula</h2>
+
+    <p>Prompt caching stores a prefix of your prompt on the provider's infrastructure so that subsequent calls with the same prefix don't re-process those tokens. The pricing model: cache writes cost slightly more than a normal input token; cache reads cost significantly less.</p>
+
+    <table>
+      <thead>
+        <tr><th>Model</th><th>Input ($/M)</th><th>Output ($/M)</th><th>Cache write ($/M)</th><th>Cache read ($/M)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Claude Opus 4.8</td><td>$15.00</td><td>$75.00</td><td>$18.75</td><td>$1.50</td></tr>
+        <tr><td>Claude Sonnet 4.6</td><td>$3.00</td><td>$15.00</td><td>$3.75</td><td>$0.30</td></tr>
+        <tr><td>Claude Haiku 4.5</td><td>$0.80</td><td>$4.00</td><td>$1.00</td><td>$0.08</td></tr>
+      </tbody>
+    </table>
+
+    <p>The write cost is 25% higher than the base input rate. The read cost is 10% of the base input rate — a 10× reduction. Whether caching is worth it depends entirely on how many times a cached prefix is reused before the cache expires.</p>
+
+    <p><strong>Breakeven formula</strong>: let <em>W</em> be the write cost per token, <em>R</em> the read cost per token, <em>I</em> the base input cost per token, and <em>N</em> the number of calls that reuse the same prefix.</p>
+
+    <pre><code># Total cost with caching (1 write + N-1 reads):
+cost_cached   = W + (N - 1) * R
+
+# Total cost without caching (N full input processes):
+cost_uncached = N * I
+
+# Caching saves money when:
+# W + (N-1)*R < N*I
+# Solving for N:
+# N > (W - R) / (I - R)
+
+def breakeven_calls(write_cost, read_cost, input_cost):
+    return (write_cost - read_cost) / (input_cost - read_cost)
+
+# Claude Sonnet 4.6 (per-token costs, scaled to same units):
+# W=3.75, R=0.30, I=3.00 (per million tokens)
+breakeven_calls(3.75, 0.30, 3.00)  # → 1.27</code></pre>
+
+    <p>For Sonnet 4.6, caching breaks even at 1.27 reuses. Any prompt prefix that's used more than twice pays for itself. The write cost premium is small relative to the read savings, so the math strongly favors caching whenever the same prefix appears in more than 2 calls.</p>
+
+    <p>When it doesn't help: if your prompts are highly dynamic (user-specific context, per-request variable data early in the prompt) and the cacheable prefix is short, the write cost overhead may not be recovered. Cache hit rate — the fraction of calls that read from cache rather than writing — is the metric to watch. If hit rate is below 50%, revisit your prompt structure before assuming caching is working.</p>
+
+    <h2>Concrete numbers: a 10k-call/day pipeline</h2>
+
+    <p>Assume a pipeline running 10,000 calls per day on Sonnet 4.6. Each call has a 2,000-token system prompt (same across all calls) plus 500 tokens of variable user context, and produces 300 tokens of output.</p>
+
+    <table>
+      <thead>
+        <tr><th>Scenario</th><th>Daily input tokens</th><th>Daily cost</th><th>Monthly cost</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No caching</td>
+          <td>25M (2,500 per call × 10k)</td>
+          <td class="bad">$75.00</td>
+          <td class="bad">$2,250</td>
+        </tr>
+        <tr>
+          <td>Cache 2k-token prefix</td>
+          <td>5M variable + 20M cached reads</td>
+          <td class="good">$21.60</td>
+          <td class="good">$648</td>
+        </tr>
+        <tr>
+          <td>Output tokens (both)</td>
+          <td>3M (300 per call × 10k)</td>
+          <td>$45.00</td>
+          <td>$1,350</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The input cost drops from $75/day to $21.60/day — a 71% reduction — just by caching the static system prompt. Output tokens are unchanged. Combined daily cost goes from $120 to $66.60, a 44% reduction on total API spend.</p>
+
+    <p>What caching doesn't save: output tokens (no caching equivalent exists), variable input tokens that change per request, and the first call of each cache epoch (the cache miss that triggers the write). On a high-volume pipeline, the write cost for that first call is negligible. On a pipeline with many short-lived unique prefixes, it can dominate.</p>
+
+    <div class="callout">
+      <strong>Prompt structure matters for caching</strong>: put your static content (system instructions, tool definitions, retrieved documents that don't change per request) at the front of your prompt. Variable content (user message, per-request context) goes at the end. The cache key is a prefix of the input — the moment variable content appears, the cache stops matching. A prompt that interleaves static and dynamic content is uncacheable.
+    </div>
+
+    <h2>Cold-start latency and what to do about it</h2>
+
+    <p>LLM inference on hosted infrastructure has a warm/cold distinction analogous to serverless functions. When a model instance has been handling traffic recently, your request is routed to an already-warm instance. When traffic has been low or the first request comes in after a long idle, the instance may need to load model weights into GPU memory — a process that adds 2–5 seconds of latency before the first token is generated.</p>
+
+    <p>Cold starts are invisible in your p50 metrics and catastrophic in your p99. Typical mitigation strategies:</p>
+
+    <ul>
+      <li><strong>Keep-alive pings</strong>: send a minimal request every 30–60 seconds to a low-traffic endpoint to prevent instances from going cold. Cost: nearly zero. Effectiveness: high for endpoints with predictable low traffic.</li>
+      <li><strong>Provisioned throughput</strong>: most enterprise tiers offer a dedicated capacity option that eliminates cold starts entirely. Expensive if you're underutilizing it; cost-effective if your p99 latency requirements are strict.</li>
+      <li><strong>Timeout budgets</strong>: set your timeout at 2× your p95 latency, not 2× your p50. If p50 is 1.2s and p95 is 3.5s, a 2.5s timeout will time out 5% of your requests. Use p99 as your baseline when cold starts are a real possibility.</li>
+      <li><strong>Async fallback</strong>: for workloads that can tolerate async processing, route cold-start requests to a queue rather than failing synchronously. Return a job ID; poll or webhook for the result.</li>
+    </ul>
+
+    <h2>Putting it together: what a production LLM gateway needs</h2>
+
+    <p>The engineering required to handle these four failure modes in a single place — rather than scattered across every integration point in your codebase — is the reason a gateway layer exists. A production gateway needs:</p>
+
+    <ul>
+      <li><strong>Per-model rate limit tracking</strong>: maintain token bucket state per model and per tenant. Block requests before they reach the API when the bucket is nearly depleted — a proactive 429 at your gateway is cheaper than one from the provider, because yours can apply priority queuing.</li>
+      <li><strong>Retry logic with correct backoff</strong>: separate retry policies for 429 vs. 5xx, with full jitter, and Retry-After header parsing.</li>
+      <li><strong>Token counting before dispatch</strong>: count input tokens before making the API call. Flag requests that exceed a per-call budget threshold. This is the only way to catch cost overruns before they appear on the billing dashboard.</li>
+      <li><strong>Prompt caching coordination</strong>: detect when a prompt's static prefix is cacheable and emit the cache control markers the provider API requires. Track cache hit rate as a first-class metric.</li>
+      <li><strong>Cost attribution</strong>: tag every call with the caller, model, prompt template ID, and token counts (input/output/cache-read/cache-write). Aggregate by dimension. The first time you see a per-user cost breakdown, you will find the user generating 40% of your token spend.</li>
+    </ul>
+
+    <pre><code># Example gateway call with cost attribution
+response = gateway.complete(
+    model="claude-sonnet-4-6",
+    messages=messages,
+    system=SYSTEM_PROMPT,  # gateway handles cache-control markers
+    metadata={
+        "caller": "document-qa",
+        "user_id": user_id,
+        "template": "rag-synthesis-v2",
+    },
+    budget_tokens=4096,    # hard cap — raises before API call if exceeded
+    priority="high",       # affects queue position under rate limiting
+)</code></pre>
+
+    <p>The open-source implementation of this gateway — with token bucket rate limiting, full-jitter backoff, prompt cache coordination, and cost attribution — is in <a href="https://github.com/shadowmodder/llm-gateway">llm-gateway</a>.</p>
+
+    <a href="https://github.com/shadowmodder/llm-gateway" class="repo-link">
+      ↗ shadowmodder/llm-gateway
+    </a>
+
+    <p>The meta-point: LLM API reliability engineering is infrastructure work, not application work. The same patterns that make distributed systems reliable — circuit breakers, rate limiting, retry budgets, cost attribution — apply here. The failure modes are different in detail but identical in structure. Engineers who've operated microservices at scale will recognize most of this. Engineers who haven't will learn it the hard way on their billing dashboard at 2am.</p>
+
+    <p>Build the gateway layer before you need it. Retrofitting retry logic into 15 different service integrations after the first production incident is the more expensive path.</p>
+
+  </article>
+</div>
+
+</body>
+</html>

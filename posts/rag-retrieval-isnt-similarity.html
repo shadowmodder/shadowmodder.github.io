@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your RAG Pipeline's Retrieval Score Is Not Relevance — Sudhir Vissa</title>
+<meta name="description" content="Cosine similarity between embeddings is not the same as relevance to the user's question. Here's how to measure what actually matters in RAG retrieval.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:last-child td { border-bottom: none; }
+  .good { color: var(--green); font-weight: 500; }
+  .bad { color: var(--red); font-weight: 500; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  .repo-link { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+  .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a href="/" class="back-link">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">RAG</span>
+      <span class="tag">retrieval</span>
+      <span class="tag">evaluation</span>
+      <span class="tag">embeddings</span>
+    </div>
+    <h1>Your RAG Pipeline's Retrieval Score Is Not Relevance</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; 9 min read</div>
+  </div>
+
+  <article>
+
+    <p>A RAG pipeline retrieves the top-10 chunks by cosine similarity, feeds them to the LLM, and the team ships it. The embedding model scores a chunk at 0.87 — clearly relevant, right? The LLM generates a confident answer. The demo looks good.</p>
+
+    <p>Six weeks later, users start reporting hallucinations. Not because the LLM is making things up from nothing — it's faithfully reading the context it was given. The context is just wrong. The retrieval step is surfacing documents that are semantically close to the query but don't actually answer it. And nobody measured this, because they were watching cosine similarity, which told them nothing useful.</p>
+
+    <h2>The semantic gap: what cosine similarity actually measures</h2>
+
+    <p>Cosine similarity between two embedding vectors measures the angle between them in high-dimensional space. Embeddings are trained to project semantically related text nearby. "How do I reset my password?" and "Password reset instructions for enterprise users" land close together. So do "What is our refund policy?" and "Our refund policy was updated in Q3 2024 to include digital goods." That second pair looks great for a question about refund policy — and it would be, if the user asked a general question. But if they asked "Can I get a refund on a software subscription purchased before Q3 2024?" the Q3 update document might be the worst possible context to retrieve.</p>
+
+    <p>The fundamental problem: cosine similarity measures topical overlap, not answer relevance. A document about the same topic as the query will score high even if it answers a different question entirely, addresses a different time period, or contains information that actively contradicts what the user needs.</p>
+
+    <h3>False positives: high similarity, wrong context</h3>
+
+    <p>Query: <em>"What is the maximum file size for API uploads?"</em></p>
+    <p>Retrieved chunk (cosine sim: 0.91): <em>"API upload limits vary by plan. Enterprise customers can upload files up to 5 GB. See our pricing page for details."</em></p>
+
+    <p>Similarity is high — the document is clearly about API upload limits. But the user is on the free tier and this chunk never mentions the free tier limit (which is 25 MB). The LLM reads the context, finds no free tier answer, and either hallucinates or says "it depends on your plan" — neither of which helps.</p>
+
+    <h3>False negatives: low similarity, right context</h3>
+
+    <p>Query: <em>"The export button is grayed out. Why?"</em></p>
+    <p>Skipped chunk (cosine sim: 0.61): <em>"Feature availability: Export to CSV requires a Business or Enterprise subscription. Users on Free or Starter plans will see export controls disabled."</em></p>
+
+    <p>The user described a UI symptom. The relevant document describes a subscription gate. The embedding model doesn't know these two sentences belong together — "grayed out" and "controls disabled" are related in product context but not in the embedding space trained on general text. The right chunk scores below the retrieval threshold and never makes it into the context window.</p>
+
+    <div class="callout">
+      <strong>The implication</strong>: you cannot validate a RAG retrieval pipeline by looking at similarity scores. A retrieval system that returns 10 chunks with cosine sim > 0.85 may be less useful than one that returns 3 chunks with cosine sim between 0.70 and 0.78. Score magnitude tells you nothing about which questions those chunks answer.
+    </div>
+
+    <h2>Measuring retrieval correctly: the four metrics that matter</h2>
+
+    <p>Proper RAG retrieval evaluation requires a labeled dataset: a set of queries, each paired with the ground-truth set of relevant document chunks. Building this dataset is the hard part — it requires either human annotation or a synthetic generation pipeline where you generate questions from your documents and verify the answers. Without it, you are flying blind.</p>
+
+    <p>With it, you can compute the metrics that actually characterize retrieval quality.</p>
+
+    <h3>Precision@K</h3>
+
+    <p>Of the K chunks returned, what fraction are actually relevant?</p>
+
+    <pre><code>Precision@K = |relevant chunks in top-K| / K</code></pre>
+
+    <p><strong>Example</strong>: you retrieve K=5 chunks for a query. Your labeled dataset says 2 of them are truly relevant. Precision@5 = 2/5 = 0.40. You're filling 60% of your context window with noise.</p>
+
+    <p>Precision@K is the metric that directly captures the "context stuffing" failure mode. If your LLM context window has 10 chunks and Precision@10 is 0.20, you've given the model 8 irrelevant documents to wade through. The model's attention is diluted across junk. This degrades generation quality even when the 2 relevant chunks are present — a finding that has been replicated across multiple studies of long-context LLM behavior.</p>
+
+    <h3>Recall@K</h3>
+
+    <p>Of all relevant chunks for this query, how many did you retrieve in your top K?</p>
+
+    <pre><code>Recall@K = |relevant chunks in top-K| / |total relevant chunks|</code></pre>
+
+    <p><strong>Example</strong>: there are 4 relevant chunks for a query in your corpus. With K=5, you retrieved 3 of them. Recall@5 = 3/4 = 0.75. You're missing 25% of the information the model needs to answer correctly.</p>
+
+    <p>Recall@K and Precision@K trade off against each other as you change K. Increasing K raises recall (you catch more relevant chunks) but lowers precision (you also include more irrelevant ones). The right operating point depends on your application: a system where missing one key fact causes a wrong answer should optimize for recall; a system where irrelevant context causes the model to hallucinate should optimize for precision.</p>
+
+    <h3>NDCG@K</h3>
+
+    <p>Normalized Discounted Cumulative Gain measures whether relevant chunks appear early in the ranked list. Chunks retrieved at position 1 receive full weight; chunks at position K receive logarithmically less. The result is normalized against the ideal ranking.</p>
+
+    <pre><code>DCG@K  = Σ (relevance_i / log2(i + 1))  for i in 1..K
+IDCG@K = DCG@K of the perfect ranking
+NDCG@K = DCG@K / IDCG@K</code></pre>
+
+    <p><strong>Example</strong>: you have 2 relevant chunks for a query, with relevance scores [1, 1] (binary relevant/not). If they appear at positions 1 and 2, DCG = 1/log2(2) + 1/log2(3) ≈ 1.0 + 0.63 = 1.63. If they appear at positions 4 and 5, DCG = 1/log2(5) + 1/log2(6) ≈ 0.43 + 0.39 = 0.82. NDCG captures this difference; Precision@5 doesn't (it's 0.40 in both cases).</p>
+
+    <p>NDCG matters when your LLM attends more strongly to early context — which all transformer models with positional encodings do to some degree. A retrieval system that buries the right answer at position 8 out of 10 is worse than one that puts it first, even if Precision@10 is identical.</p>
+
+    <h3>MRR (Mean Reciprocal Rank)</h3>
+
+    <p>For each query, find the rank of the first relevant document. Take the reciprocal. Average across queries.</p>
+
+    <pre><code>MRR = (1/|Q|) × Σ (1 / rank_of_first_relevant)  for each query in Q</code></pre>
+
+    <p><strong>Example</strong>: across 3 queries, the first relevant document appears at ranks 1, 3, and 5. MRR = (1/3) × (1/1 + 1/3 + 1/5) = (1/3) × 1.533 ≈ 0.51.</p>
+
+    <p>MRR is the right metric when you only care about whether the single most relevant chunk makes it into the top results — common in question-answering pipelines where the LLM extracts a specific fact rather than synthesizing across multiple sources. It's insensitive to what happens after position 1, which makes it too coarse for multi-hop reasoning tasks.</p>
+
+    <div class="fig">
+      <div class="label">Metric comparison — what each one catches</div>
+<pre>Query: "What is the free-tier upload limit?"
+Retrieved K=5: [B, A, C, D, E]
+Relevant chunks: {A, C}   (A at pos 2, C at pos 3)
+
+<span class="hi">Precision@5</span>  = 2/5 = 0.40   (2 relevant out of 5 retrieved)
+<span class="hi">Recall@5</span>     = 2/2 = 1.00   (both relevant chunks found)
+<span class="hi">NDCG@5</span>      = 0.72          (relevant chunks not at top positions)
+<span class="hi">MRR</span>         = 0.50          (first relevant at position 2)
+
+Same query, reranked: [A, C, B, D, E]
+
+<span class="accent">Precision@5</span>  = 0.40         (unchanged — same chunks)
+<span class="accent">Recall@5</span>     = 1.00         (unchanged)
+<span class="accent">NDCG@5</span>      = 0.93          (relevant chunks now at top)
+<span class="accent">MRR</span>         = 1.00          (first relevant now at position 1)</pre>
+    </div>
+
+    <h2>The context stuffing failure mode</h2>
+
+    <p>Most RAG implementations set K=10 or K=15 because "more context is better." This reasoning is wrong in two distinct ways.</p>
+
+    <p>First, irrelevant chunks in the context window actively hurt generation quality. Multiple controlled evaluations have found that injecting irrelevant documents into an LLM's context degrades its performance on questions about the relevant documents — sometimes below baseline (no retrieval at all). The model allocates attention to the irrelevant text and produces answers that blend the wrong content with the right content.</p>
+
+    <p>Second, the "lost in the middle" phenomenon: LLMs are systematically worse at using information that appears in the middle of a long context window compared to information at the beginning or end. If your retrieval returns 10 chunks and ranks them by cosine similarity, the most "similar" chunks (which are not necessarily the most relevant) appear first, and the truly relevant chunks may land in the middle of the context — exactly where the model will underutilize them.</p>
+
+    <p>The correct approach: optimize your K against measured Precision@K and Recall@K on your labeled eval set. For most enterprise RAG systems over structured documents, K=3 to K=5 with a reranking step outperforms K=10 with raw similarity scoring. Less context, better context.</p>
+
+    <h2>Practical fix: hybrid retrieval plus reranking</h2>
+
+    <p>The retrieval architecture that consistently outperforms pure dense retrieval in benchmarks:</p>
+
+    <h3>Stage 1: hybrid retrieval (dense + sparse)</h3>
+
+    <p>Run two retrieval systems in parallel and merge their result sets. Dense retrieval (your embedding model + vector store) excels at semantic matching — it finds relevant chunks even when the exact keywords aren't present. Sparse retrieval (BM25 or similar term-frequency methods) excels at exact-match queries — product names, error codes, version numbers, proper nouns that embeddings often handle poorly.</p>
+
+    <pre><code># Reciprocal Rank Fusion — merge dense and sparse rankings
+def rrf(rankings: list[list[str]], k: int = 60) -> list[str]:
+    scores: dict[str, float] = {}
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking):
+            scores[doc_id] = scores.get(doc_id, 0) + 1 / (k + rank + 1)
+    return sorted(scores, key=scores.get, reverse=True)</code></pre>
+
+    <p>Reciprocal Rank Fusion combines the two ranked lists without requiring you to tune a weighting coefficient. Each document's RRF score is the sum of its reciprocal ranks across retrieval systems. The constant k=60 is the standard default — documents ranked very high in either system dominate the merged list.</p>
+
+    <h3>Stage 2: cross-encoder reranking</h3>
+
+    <p>Take the top-N candidates from Stage 1 (typically N=20–50) and score each (query, chunk) pair with a cross-encoder model. Unlike bi-encoders (which embed query and document independently), cross-encoders encode the query and document together — they can attend to the relationship between them. This is much more expensive per pair, which is why you only apply it to the candidate set, not the entire corpus.</p>
+
+    <pre><code>from sentence_transformers import CrossEncoder
+
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+pairs = [(query, chunk.text) for chunk in candidates]
+scores = reranker.predict(pairs)
+reranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
+final_chunks = [chunk for chunk, _ in reranked[:K]]</code></pre>
+
+    <p>The cross-encoder understands that "grayed out export button" and "export controls disabled" refer to the same problem. The bi-encoder didn't. This is the fix for the false-negative failure mode described earlier.</p>
+
+    <div class="callout">
+      <strong>Latency note</strong>: a cross-encoder over 20 candidates with a small model (MiniLM) adds ~30–50ms on CPU. On GPU or with a hosted reranking API (Cohere Rerank, Jina), this drops to &lt;10ms. The precision gain is almost always worth this cost.
+    </div>
+
+    <h2>The reliability diagram equivalent for RAG: context precision vs. recall curves</h2>
+
+    <p>For calibration, we plot predicted score against actual outcome rate. For RAG retrieval, the equivalent diagnostic is a Precision@K vs. Recall@K curve swept over K.</p>
+
+    <div class="fig">
+      <div class="label">Context precision vs. recall — retrieval strategies compared</div>
+<pre>Precision
+  1.0 ┤
+      │  ●  Cross-encoder rerank
+  0.8 ┤   ●
+      │      ●
+  0.6 ┤         ●  Hybrid (dense+BM25)
+      │    ●       ●
+  0.4 ┤       ●      ●
+      │          ●     ●  Dense only (baseline)
+  0.2 ┤             ●    ●
+      │                ●    ●
+  0.0 ┼────────────────────────────
+      0.2  0.4  0.6  0.8  1.0   Recall
+
+K=1,3,5,10,15,20 swept left to right on each curve</pre>
+    </div>
+
+    <p>A system that dominates in this curve space — higher precision at every recall level — is unambiguously better. Most RAG teams have never generated this plot. They've looked at cosine similarity distributions and end-to-end generation accuracy, with nothing in between. That gap is where retrieval failures hide.</p>
+
+    <p>Generate this curve by sweeping K from 1 to 20, computing Precision@K and Recall@K against your labeled eval set at each K, and plotting the resulting (recall, precision) pairs. Do this for each retrieval variant. The curve that dominates across the operating range you care about is the system to deploy.</p>
+
+    <h2>Building the eval dataset</h2>
+
+    <p>The labeled eval set is the hard prerequisite for all of the above. In practice:</p>
+
+    <ul>
+      <li><strong>Synthetic generation</strong>: for each document chunk, generate 2–3 plausible questions that this chunk (and only this chunk) answers. Use a capable LLM, then filter with a secondary model that verifies the chunk actually answers the generated question. Keep only pairs where the chunk contains a complete answer to the question.</li>
+      <li><strong>User query logs</strong>: if you have a deployed system, log real queries alongside the chunks that produced correct answers (verified via human review or LLM-as-judge). These are your hardest and most valuable eval examples because they represent real failure modes, not synthetic ones.</li>
+      <li><strong>Adversarial construction</strong>: deliberately add near-miss chunks — documents highly similar to query topics but answering different questions. These stress-test your system's false positive rate.</li>
+    </ul>
+
+    <p>A dataset of 200–500 queries with labeled relevant chunks is enough to get reliable Precision@K and Recall@K estimates. You don't need thousands. You need coverage across your query distribution.</p>
+
+    <p>The evaluation harness for all of this — Precision@K, Recall@K, NDCG@K, MRR computation, hybrid retrieval, and the precision-recall curve generation — is in <a href="https://github.com/shadowmodder/rag-eval">rag-eval</a>.</p>
+
+    <a href="https://github.com/shadowmodder/rag-eval" class="repo-link">
+      ↗ shadowmodder/rag-eval
+    </a>
+
+    <p>The key shift: stop treating retrieval as a solved problem that happens before "the real work" of generation. In most RAG failures, retrieval is the problem. Measuring it correctly — with precision, recall, NDCG, and MRR against a labeled eval set — is the only way to know whether your pipeline is actually working.</p>
+
+  </article>
+</div>
+
+</body>
+</html>
