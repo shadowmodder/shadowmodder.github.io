@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fine-Tuning vs. Prompting: A Decision Framework That Doesn't Lie to You — Sudhir Vissa</title>
+<meta name="description" content="The real decision tree for fine-tuning vs. prompting: labeled data requirements, the cost crossover formula, LoRA vs RAG tradeoffs, and the evaluation harness you can't skip.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:last-child td { border-bottom: none; }
+  .good { color: var(--green); font-weight: 500; }
+  .bad { color: var(--red); font-weight: 500; }
+  .warn { color: var(--yellow); font-weight: 500; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  .repo-link { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+  .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a href="/" class="back-link">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">fine-tuning</span>
+      <span class="tag">LLM</span>
+      <span class="tag">LoRA</span>
+      <span class="tag">RAG</span>
+      <span class="tag">prompting</span>
+    </div>
+    <h1>Fine-Tuning vs. Prompting: A Decision Framework That Doesn't Lie to You</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; 10 min read</div>
+  </div>
+
+  <article>
+
+    <p>The standard framing is a binary: fine-tune or don't. In practice, this framing causes bad decisions in both directions. Teams with 50 labeled examples spin up training infrastructure that produces a worse model than a well-engineered prompt. Teams with 50,000 examples and a strict latency budget keep paying for GPT-4 when a fine-tuned 7B model would cost 1/20th as much and respond in half the time. The binary obscures what's actually a four-node decision tree.</p>
+
+    <p>This post works through that decision tree without the hype, gives you the numbers that change the economics, and tells you when each approach wins — including the cases where the honest answer is "you're not ready to fine-tune yet."</p>
+
+    <h2>The actual decision tree</h2>
+
+    <p>Before you open a Jupyter notebook, four questions determine the outcome:</p>
+
+    <p><strong>Node 1: Do you have labeled data?</strong> Not "do you have data" — do you have data with ground-truth outputs you'd be willing to train on? If the answer is no, you're not choosing between prompting and fine-tuning. You're choosing between prompting and building a labeling pipeline first. That's a different project with a different timeline.</p>
+
+    <p><strong>Node 2: Is the task format-sensitive or knowledge-sensitive?</strong> A format-sensitive task is one where the output structure is the hard part: strict JSON schemas, citation formats, domain-specific syntax, consistent tone at scale. A knowledge-sensitive task is one where the model needs facts it doesn't have: proprietary terminology, recent events past the training cutoff, internal documentation. This distinction determines which technique actually addresses your bottleneck. Fine-tuning excels at format. RAG excels at knowledge. Confusing the two is one of the most expensive mistakes in applied ML.</p>
+
+    <p><strong>Node 3: Does per-token cost or latency make prompting unviable at scale?</strong> At low call volume, the GPU cost of training and serving your own model dominates. At high call volume, the per-token cost of a frontier API dominates. There's a crossover point that you can calculate exactly (more on this below). If you're not past that crossover, fine-tuning is a cost you're incurring without a return.</p>
+
+    <p><strong>Node 4: Can you afford the evaluation infrastructure?</strong> Fine-tuning without a rigorous eval harness is not fine-tuning — it's expensive overfitting. If you can't commit to a held-out test set, adversarial probes, and a regression suite, you will ship a model you can't characterize. The answer to this question doesn't determine whether fine-tuning is the right approach; it determines whether you're ready to attempt it.</p>
+
+    <h2>When prompting wins (and why teams miss it)</h2>
+
+    <p>Chain-of-thought prompting combined with few-shot examples is substantially more powerful than most teams assume before they've tried it seriously. The benchmark that makes this concrete is GSM8K — a dataset of 8,500 grade-school math word problems that require multi-step reasoning. GPT-4 with 8-shot chain-of-thought prompting hits 92% accuracy on the test set. Fine-tuned smaller models (7B-13B range) trained specifically for math reasoning land in the 70–80% range. The prompting approach, applied to a larger model, wins by 12+ percentage points — no training data required.</p>
+
+    <p>This pattern generalizes: for tasks that are primarily about reasoning rather than format or domain-specific knowledge, a well-constructed prompt on a capable model is hard to beat. The technique has a specific structure. System prompt establishes the reasoning protocol. Few-shot examples (4–8 is typically the sweet spot; more hits context limits without proportional gains) demonstrate the chain-of-thought pattern explicitly — not just the final answer, but the intermediate steps. The model learns to follow the reasoning template from the examples rather than from gradient updates.</p>
+
+    <p>The hidden cost of fine-tuning that teams systematically underestimate is not the GPU hours. It's the labeled data collection — which requires human annotators, annotation guidelines, quality review, and iteration cycles — and the evaluation harness that you now have to maintain indefinitely. Every time you update the base model, change the task definition, or encounter distribution shift in production, the eval harness has to be rerun and potentially rebuilt. Prompting doesn't eliminate maintenance, but the maintenance is concentrated in the prompt itself rather than distributed across a training pipeline, a versioned dataset, and an eval suite.</p>
+
+    <div class="callout">
+      <strong>The structured output exception:</strong> prompting reliably fails at strict schema enforcement. Asking GPT-4 to always return valid JSON with a specific schema produces compliant output roughly 85–95% of the time in practice — not the 100% you need for a system that parses the output programmatically. If your task requires schema compliance rather than reasoning quality, prompting alone is the wrong tool.
+    </div>
+
+    <h2>When fine-tuning actually wins</h2>
+
+    <p>There are four situations where fine-tuning has a genuine, defensible advantage over prompting.</p>
+
+    <p><strong>Latency.</strong> A fine-tuned 7B model hosted on a single A100 generates at roughly 150–200 tokens/second. GPT-4 generates at 40–80 tokens/second via API, with additional network round-trip time. For applications where time-to-first-token is a hard requirement — real-time assistants, autocomplete, latency-sensitive pipelines — a smaller fine-tuned model running close to the application may be the only option that meets the SLA. This is independent of cost; even if the API were free, a locally-hosted fine-tuned model can be faster.</p>
+
+    <p><strong>Format consistency.</strong> A model trained on thousands of examples of a specific output format internalizes that format in a way that prompting can't replicate. If you need deterministic JSON schemas, domain-specific citation styles, or consistent structural patterns across millions of calls, fine-tuning is the right tool. This is the format-sensitive case from the decision tree.</p>
+
+    <p><strong>Data privacy.</strong> If you're operating in a regulated environment where data cannot leave your infrastructure, you have no choice: on-premises deployment of a fine-tuned open model is the only viable path. This constraint trumps all the economics — the question isn't whether fine-tuning wins, it's which base model to start from.</p>
+
+    <p><strong>Volume economics.</strong> The cost crossover formula is straightforward:</p>
+
+    <pre><code># Fine-tuning is worth it when:
+# N_calls * (C_prompt - C_ft) > C_training + C_eval
+#
+# Where:
+#   N_calls  = total calls over the model's useful lifetime
+#   C_prompt = cost per call using frontier API ($/call)
+#   C_ft     = cost per call serving fine-tuned model ($/call)
+#   C_training = one-time training cost ($)
+#   C_eval   = ongoing evaluation infrastructure cost ($)
+
+# Concrete example:
+C_prompt   = 0.0030   # GPT-4o at ~$15/1M input + $60/1M output, avg 200 tokens in/out
+C_ft       = 0.00015  # Self-hosted 7B on A100, amortized compute
+C_training = 8000     # LoRA fine-tuning run: ~$500 GPU + $7500 data collection/labeling
+C_eval     = 2000     # Eval harness build + first 6 months of maintenance
+
+breakeven = (C_training + C_eval) / (C_prompt - C_ft)
+print(f"Breakeven: {breakeven:,.0f} calls")  # ~3.5M calls</code></pre>
+
+    <p>At 10 million calls per month, the monthly savings from switching to a self-hosted fine-tuned model are on the order of $28,500. The $10,000 upfront investment pays back in under two weeks. At 100,000 calls per month, it takes 3.5 months. At 10,000 calls per month, you never break even on a two-year horizon. Run the numbers with your actual token counts and API pricing before making the decision.</p>
+
+    <h2>The data trap</h2>
+
+    <p>The most common reason fine-tuning projects fail is not training instability or hyperparameter sensitivity — it's insufficient labeled data. Teams arrive with 50 examples they've collected opportunistically and expect to see meaningful improvement. The learning curve doesn't work that way.</p>
+
+    <p>For format-sensitive tasks — JSON schema enforcement, structured output generation, consistent tone — LoRA fine-tuning typically requires 500 to 1,000 high-quality examples before performance stabilizes. Below that threshold, the model is pattern-matching on noise in the training set rather than learning the underlying structure. For knowledge-sensitive tasks — domain terminology, proprietary content, factual recall — you need 5,000 or more examples to see reliable improvement, because the model needs enough signal to update the weight regions responsible for factual storage.</p>
+
+    <p>The learning curve shape matters here. Performance improves steeply from 0 to roughly 500 examples, then the curve flattens. Adding more data past the plateau has diminishing returns — going from 1,000 to 10,000 examples on a format task might improve accuracy from 91% to 93%. That 2% may or may not justify 10× the labeling cost, depending on your requirements. The critical threshold is reaching the plateau. If you're not at the plateau, every additional example is high-value. If you're past it, you're buying marginal improvements at full price.</p>
+
+    <p>"We have 50 examples" is almost never enough. It's enough to validate that your labeling pipeline produces consistent outputs. It's not enough to train a model that outperforms a well-prompted frontier API. Before committing to fine-tuning, estimate your required example count against the nature of the task, and price out what data collection actually costs at that scale.</p>
+
+    <h2>LoRA vs. full fine-tuning vs. RAG</h2>
+
+    <p>These three approaches are frequently positioned as alternatives to each other. They're better understood as a triangle of tradeoffs, each optimized for a different constraint.</p>
+
+    <table>
+      <thead>
+        <tr><th>Approach</th><th>Best for</th><th>Main limitation</th><th>Reversibility</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>LoRA</td><td>Format, style, output structure</td><td>Limited knowledge update capacity</td><td class="good">High — merge or discard adapters</td></tr>
+        <tr><td>Full fine-tuning</td><td>Deep behavioral change</td><td>Catastrophic forgetting; expensive</td><td class="bad">Low — hard to undo weight changes</td></tr>
+        <tr><td>RAG</td><td>Knowledge, recency, factual recall</td><td>Retrieval failure modes; added latency</td><td class="good">High — update the index, not the model</td></tr>
+      </tbody>
+    </table>
+
+    <p>LoRA (Low-Rank Adaptation) trains a small set of adapter weights — typically 1–5% of the parameter count of the base model — rather than updating the full weight matrix. This makes training cheap (a LoRA run on a 7B model takes 2–4 hours on a single A100 rather than days), and crucially, makes it reversible: the adapter weights can be merged into the base model or discarded independently. The limitation is capacity: because LoRA updates only a low-rank subspace of the weight matrix, it can't make large updates to factual knowledge. It's excellent for teaching format; it's poor at teaching facts.</p>
+
+    <p>Full fine-tuning updates all weights and can, in principle, inject new knowledge more thoroughly. In practice, it also catastrophically forgets capabilities that weren't represented in the fine-tuning dataset — a model trained on domain-specific text may degrade on general reasoning tasks that weren't part of the training distribution. Full fine-tuning is also expensive: even with gradient checkpointing and mixed precision, fine-tuning a 70B model requires a multi-GPU cluster and days of compute.</p>
+
+    <p>RAG sidesteps weight updates entirely by providing relevant documents at inference time. This makes it ideal for knowledge that changes — new documentation, recent events, updated policies. The failure modes are retrieval-specific: if the retrieval step returns the wrong documents, the model has incorrect context and confidently produces wrong answers. RAG also adds latency (retrieval + reranking before the main LLM call), which matters for latency-sensitive applications.</p>
+
+    <p>The practical answer for most teams: <strong>use RAG for knowledge, LoRA for format and style</strong>. They're complementary, not competitive. A RAG pipeline that retrieves the right documents and a LoRA adapter that enforces the output schema are solving different problems and can be composed.</p>
+
+    <h2>The evaluation you can't skip</h2>
+
+    <p>Fine-tuning without a rigorous evaluation suite is optimization without a loss function. You're not training a model — you're making expensive changes to weights and hoping the result is better. Three components are non-negotiable:</p>
+
+    <p><strong>Held-out test set from the same distribution as training.</strong> This is not the same as a validation set used during training. A true held-out test set is never seen during training or hyperparameter selection. It's used exactly once, after training is complete, to estimate real-world performance. If you evaluate on your validation set and retrain based on those results, you've leaked signal into the training process and your validation numbers are optimistic.</p>
+
+    <p><strong>Adversarial examples that probe for overfitting.</strong> A model that achieves 97% on the held-out test set but fails on slightly rephrased versions of the same inputs has overfit to surface-level patterns in the training data rather than learning the underlying task. Construct adversarial examples by: paraphrasing test inputs, adding irrelevant context, varying formatting, and testing inputs that are adjacent to the training distribution but not identical. If performance degrades substantially on adversarial examples versus the clean test set, the model has memorized rather than generalized.</p>
+
+    <p><strong>Regression suite checking that general capabilities aren't degraded.</strong> Every fine-tuning run risks catastrophic forgetting. A fine-tuned model that is 5% better at your target task but 15% worse at general reasoning is a net negative if your application uses both capabilities. Run a standard benchmark suite (MMLU, HellaSwag, or task-specific benchmarks relevant to your application) on the fine-tuned model and compare to the base model before shipping anything.</p>
+
+    <p>If you can't build this eval infrastructure before you start training, you're not ready to fine-tune. The absence of evaluation doesn't make fine-tuning cheaper — it makes it more expensive, because you can't distinguish a good run from a bad one and you'll iterate blindly.</p>
+
+    <h2>LoRA configuration in practice</h2>
+
+    <p>When you've worked through the decision tree and determined that LoRA fine-tuning is the right approach, the configuration below is a reasonable starting point for a format-sensitive task on a 7B-13B base model using the <code>peft</code> library:</p>
+
+    <pre><code>from peft import LoraConfig, get_peft_model, TaskType
+from transformers import AutoModelForCausalLM, TrainingArguments
+from trl import SFTTrainer
+
+# LoRA adapter configuration
+lora_config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM,
+    r=16,                    # Rank — higher means more capacity, more compute
+                             # r=8 for format tasks, r=32-64 for knowledge tasks
+    lora_alpha=32,           # Scaling factor; conventionally 2 * r
+    target_modules=[         # Which weight matrices to adapt
+        "q_proj",            # Query projection in attention
+        "v_proj",            # Value projection in attention
+        # Add "k_proj", "o_proj", "gate_proj" for higher-rank runs
+    ],
+    lora_dropout=0.05,       # Regularization; 0.05-0.1 for small datasets
+    bias="none",             # Don't adapt bias terms
+    inference_mode=False,
+)
+
+# Load base model in 4-bit quantization to fit on a single GPU
+model = AutoModelForCausalLM.from_pretrained(
+    "mistralai/Mistral-7B-v0.1",
+    load_in_4bit=True,       # QLoRA: train LoRA adapters on quantized base
+    device_map="auto",
+)
+model = get_peft_model(model, lora_config)
+model.print_trainable_parameters()
+# Output: trainable params: 4,194,304 || all params: 3,756,974,080 || trainable%: 0.1116
+
+training_args = TrainingArguments(
+    output_dir="./ft-output",
+    num_train_epochs=3,          # 2-4 epochs typical; monitor val loss for early stopping
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,   # Effective batch size = 16
+    warmup_steps=100,
+    learning_rate=2e-4,          # Higher than full fine-tuning; LoRA is more forgiving
+    fp16=True,
+    logging_steps=50,
+    evaluation_strategy="steps",
+    eval_steps=200,
+    save_strategy="steps",
+    save_steps=200,
+    load_best_model_at_end=True,
+    report_to="wandb",           # Track every run; no exceptions
+)
+
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    peft_config=lora_config,
+    dataset_text_field="text",
+    max_seq_length=2048,
+    args=training_args,
+)
+
+trainer.train()
+
+# Save adapter weights only (not the full model)
+model.save_pretrained("./lora-adapter")
+# Merge adapter into base model for inference (optional, removes adapter overhead)
+merged = model.merge_and_unload()
+merged.save_pretrained("./merged-model")</code></pre>
+
+    <p>A few non-obvious things in this configuration. The rank (<code>r=16</code>) controls the capacity of the adapter. For format tasks, <code>r=8</code> to <code>r=16</code> is generally sufficient. For knowledge tasks, you need higher rank (<code>r=32</code> to <code>r=64</code>) — but at that point, ask whether full fine-tuning makes more sense. The <code>target_modules</code> list restricts which weight matrices get adapters; starting with just <code>q_proj</code> and <code>v_proj</code> is conservative and usually sufficient. If performance is plateauing, expand to include the key and output projections.</p>
+
+    <p>QLoRA (quantizing the base model to 4-bit before attaching LoRA adapters) is the configuration that makes fine-tuning accessible on a single consumer GPU. It reduces memory from roughly 14GB for a 7B model in fp16 to roughly 6GB in 4-bit, with a modest accuracy cost that is usually negligible for format tasks.</p>
+
+    <h2>Decision tree summary</h2>
+
+    <p>Working through the nodes in order:</p>
+
+    <ol>
+      <li><strong>Do you have 500+ high-quality labeled examples?</strong> If no: start with prompting. Build the labeling pipeline while you iterate on the prompt. Revisit fine-tuning when you have sufficient data.</li>
+      <li><strong>Is the task format-sensitive or knowledge-sensitive?</strong> If knowledge-sensitive: deploy RAG before reaching for fine-tuning. RAG is cheaper, faster to iterate, and more maintainable for knowledge tasks. If format-sensitive: continue to node 3.</li>
+      <li><strong>Are you past the cost crossover point?</strong> Run the formula: <code>N_calls * (C_prompt - C_ft) > C_training + C_eval</code>. If no: the cost savings don't justify the investment. Optimize the prompt instead. If yes: continue to node 4.</li>
+      <li><strong>Can you build and maintain an eval harness?</strong> If no: you're not ready. The eval harness is not optional — it's the only way to know whether training is improving or degrading the model. If yes: proceed with LoRA fine-tuning on a capable open base model.</li>
+    </ol>
+
+    <p>The framework isn't complicated. The discipline required to follow it is. Most teams skip node 1 (they overestimate their labeled data quality), skip node 2 (they use fine-tuning for knowledge tasks where RAG would work), and skip node 4 (they ship without an eval harness and can't characterize what they built). The result is expensive, underperforming models that are harder to maintain than the prompts they replaced.</p>
+
+    <p>Fine-tuning is the right tool in specific, well-characterized situations. Prompting is underutilized in most of the situations where teams reach for fine-tuning first. Knowing which situation you're in is the whole job.</p>
+
+    <a href="https://github.com/shadowmodder/rag-eval" class="repo-link">
+      ↗ shadowmodder/rag-eval
+    </a>
+
+  </article>
+</div>
+
+</body>
+</html>
