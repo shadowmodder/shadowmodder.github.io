@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streaming LLMs in Production: The Edge Cases That Break Your App — Sudhir Vissa</title>
+<meta name="description" content="SSE framing, backpressure, incomplete JSON from tool calls, reconnection semantics, TTFT measurement, and timeout strategy — the streaming edge cases that production exposes.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:last-child td { border-bottom: none; }
+  .good { color: var(--green); font-weight: 500; }
+  .bad { color: var(--red); font-weight: 500; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  .repo-link { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+  .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a href="/" class="back-link">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">LLM</span>
+      <span class="tag">streaming</span>
+      <span class="tag">SSE</span>
+      <span class="tag">production</span>
+    </div>
+    <h1>Streaming LLMs in Production: The Edge Cases That Break Your App</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; 10 min read</div>
+  </div>
+
+  <article>
+
+    <p>Streaming looks easy. You add <code>stream=True</code> to the API call, iterate over chunks, and append text to the UI. It works in development. Then you ship it and the first production incident arrives: a mobile user's stream hangs mid-sentence, a tool call arrives corrupted, reconnection after a network blip restarts the entire generation from scratch, and your 30-second read timeout is killing requests that should take four minutes.</p>
+
+    <p>None of these are edge cases. They're the default behavior of streaming under real network conditions. Here's the complete set of failure modes and how to handle each.</p>
+
+    <h2>Why streaming breaks differently than batch</h2>
+
+    <p>A batch (non-streaming) LLM call is a standard HTTP request-response cycle. The server buffers the entire response, sets <code>Content-Length</code>, and sends it when generation completes. Every proxy, CDN, and load balancer in the world handles this correctly. Streaming inverts this: the server sends a response body that grows over time, and the client is expected to process it incrementally before the response is complete.</p>
+
+    <p>LLM streaming uses Server-Sent Events (SSE), a simple text protocol over an HTTP response with <code>Content-Type: text/event-stream</code>. Each chunk is a frame:</p>
+
+    <pre><code>data: {"type":"content_block_delta","delta":{"text":"The capital"}}\n\n
+data: {"type":"content_block_delta","delta":{"text":" of France"}}\n\n
+data: {"type":"content_block_delta","delta":{"text":" is Paris."}}\n\n
+data: [DONE]\n\n</code></pre>
+
+    <p>The double newline terminates each event. <code>data: [DONE]</code> is the stream terminator — when the client sees this, generation is complete. The protocol is intentionally simple, which is part of the problem: it has no built-in flow control, no acknowledgment, and no fragmentation handling.</p>
+
+    <p>The immediate failure mode in production is <strong>proxy buffering</strong>. Nginx, by default, buffers upstream responses before forwarding them to clients. When <code>proxy_buffering</code> is <code>on</code> (the default), your SSE stream is collected into memory and forwarded in large batches — or worse, held until the upstream closes the connection, which defeats the entire purpose of streaming. The fix:</p>
+
+    <pre><code># nginx — disable buffering for SSE endpoints
+location /api/stream {
+    proxy_pass http://backend;
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_set_header Connection '';
+    proxy_http_version 1.1;
+    chunked_transfer_encoding on;
+    X-Accel-Buffering: no;
+}</code></pre>
+
+    <p>AWS ALB has a 60-second idle timeout by default. A streaming response that produces a chunk every 30 seconds will hit this on long generations — the load balancer closes the connection mid-stream. Set the idle timeout to 300+ seconds for endpoints that serve long streams, or emit a comment frame (<code>: keepalive\n\n</code>) every 15 seconds to keep the connection alive. Cloudflare has a 100-second response timeout on its free and Pro plans that cannot be extended — if you're behind Cloudflare and generating long responses, you need Argo or Enterprise, or you need to restructure the response.</p>
+
+    <p>Gzip compression interacts badly with streaming. Gzip buffers data to find compression opportunities — the typical minimum flush size is 8KB. If your average chunk is 40 bytes of JSON, gzip won't flush until it has accumulated 200 chunks. Disable gzip for SSE endpoints, or configure minimum flush to 1 byte (which defeats the compression anyway). The correct approach is to not compress streaming responses.</p>
+
+    <h2>The backpressure problem</h2>
+
+    <p>In a streaming pipeline, the producer (the LLM inference server) generates tokens at a rate that may differ from the rate at which the consumer (your client) can process them. When the consumer is faster than the producer — a desktop browser reading at 1000 tokens/s from a model generating at 80 tokens/s — no problem exists. The client waits for each chunk. When the producer is faster than the consumer, the server-side TCP buffer fills up.</p>
+
+    <p>A consumer on a slow mobile network may receive data at 500 bytes/s. Your inference server is generating at 80 tokens/s, which at roughly 4 bytes/token is 320 bytes/s — slower than even a 3G connection. But the consumer isn't always the network. A client doing heavy DOM manipulation on each token, or a server-side proxy accumulating and re-streaming, can fall behind the producer even on a fast connection.</p>
+
+    <p>When the consumer falls behind, the TCP receive window closes, which signals the producer to stop sending. On the inference server side, the response write blocks. Depending on the server implementation, this either causes the goroutine/thread to hang waiting for the write to unblock, or the server detects a stalled connection and closes it. The client sees a partial stream followed by a connection reset.</p>
+
+    <p>The correct pattern on the client side is to read with a per-chunk timeout, detecting stalls before they cascade into a connection reset:</p>
+
+    <pre><code>async function consumeStream(response, onChunk, stallTimeoutMs = 10000) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    // Race the read against a stall timeout
+    const readPromise = reader.read();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Stream stalled')), stallTimeoutMs)
+    );
+
+    let done, value;
+    try {
+      ({ done, value } = await Promise.race([readPromise, timeoutPromise]));
+    } catch (err) {
+      // Stall detected — cancel the reader and surface the error
+      await reader.cancel();
+      throw err;
+    }
+
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // keep incomplete line
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') return;
+        try {
+          onChunk(JSON.parse(data));
+        } catch {
+          // Malformed chunk — log and continue
+        }
+      }
+    }
+  }
+}</code></pre>
+
+    <p>The stall timeout should be distinct from the overall read timeout. You want to detect "no bytes received for N seconds" (stall) separately from "total request taking too long" (overall timeout). A 10-second stall timeout catches hung connections without killing legitimately slow generations.</p>
+
+    <h2>Incomplete JSON from tool calls</h2>
+
+    <p>Tool call arguments arrive as a JSON string that is itself streamed in fragments. This is the most commonly mishandled streaming edge case. A single SSE event might contain:</p>
+
+    <pre><code>data: {"type":"tool_use","name":"get_weather","input":"{\"loc"}</code></pre>
+
+    <p>That's a valid SSE frame, but the <code>input</code> field is a truncated JSON string. The next frame continues it:</p>
+
+    <pre><code>data: {"type":"tool_use_delta","input":"ation\": \"Paris\", \"unit\": \"celsius\"}"}</code></pre>
+
+    <p>Naive JSON.parse on either frame throws. The fix is to accumulate the tool call input across frames before attempting to parse:</p>
+
+    <pre><code>import json
+
+class ToolCallAccumulator:
+    def __init__(self):
+        self.calls = {}  # index -> {name, input_chunks}
+
+    def feed(self, event: dict):
+        etype = event.get("type")
+
+        if etype == "tool_use":
+            idx = event["index"]
+            self.calls[idx] = {
+                "name": event["name"],
+                "input_chunks": [event.get("input", "")]
+            }
+
+        elif etype == "tool_use_delta":
+            idx = event["index"]
+            if idx in self.calls:
+                self.calls[idx]["input_chunks"].append(
+                    event.get("input", "")
+                )
+
+    def finalize(self) -> list[dict]:
+        results = []
+        for idx, call in self.calls.items():
+            raw = "".join(call["input_chunks"])
+            try:
+                args = json.loads(raw)
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"Tool call '{call['name']}' produced invalid JSON: {e}\nRaw: {raw!r}"
+                )
+            results.append({"name": call["name"], "arguments": args})
+        return results</code></pre>
+
+    <p>For cases where you need to act on tool call arguments <em>before</em> the stream finishes — for example, to start fetching data in parallel — you need progressive (incremental) JSON parsing. Python's <code>ijson</code> library parses a JSON stream token by token, emitting events as structure becomes available:</p>
+
+    <pre><code>import ijson
+import io
+
+def stream_parse_arguments(chunks):
+    """Parse tool call arguments progressively as chunks arrive."""
+    buf = io.BytesIO()
+    parser = ijson.parse(buf)
+
+    for chunk in chunks:
+        buf.write(chunk.encode())
+        buf.seek(0)
+        try:
+            for prefix, event, value in parser:
+                # Act on partial structure as it arrives
+                if (prefix, event) == ('location', 'string'):
+                    yield ('location', value)
+        except ijson.IncompleteJSONError:
+            pass  # More data needed — continue</code></pre>
+
+    <p>In JavaScript, the equivalent is a streaming JSON parser like <code>@streamparser/json</code> or building a simple state machine for the specific schema you're parsing. For most tool call use cases — where you need the complete arguments before dispatch — accumulate-then-parse is simpler and correct.</p>
+
+    <div class="callout">
+      <strong>The index field is load-bearing:</strong> when a model emits multiple tool calls in parallel, each call has a distinct <code>index</code> in the stream events. If you flatten the stream without tracking index, you'll merge arguments from different tool calls into each other. Always accumulate per-index, not globally.
+    </div>
+
+    <h2>SSE reconnection semantics</h2>
+
+    <p>The SSE specification includes a built-in reconnection mechanism via the <code>Last-Event-ID</code> header. Servers can assign an ID to each event:</p>
+
+    <pre><code>id: chunk-47
+data: {"type":"content_block_delta","delta":{"text":" surprising"}}\n\n</code></pre>
+
+    <p>When the client reconnects after a dropped connection, it sends the last-seen ID as a request header:</p>
+
+    <pre><code>GET /api/stream HTTP/1.1
+Last-Event-ID: chunk-47</code></pre>
+
+    <p>The server is then supposed to resume the stream from that offset. The problem: most LLM streaming implementations don't implement this correctly. The common mistake is to restart generation from the beginning and skip the first N events — which sends the same input to the model and gets a different output, because LLM generation is stochastic. The user sees the text change on reconnect.</p>
+
+    <p>The correct implementation requires storing the accumulated response server-side and replaying from an offset on reconnect — not restarting generation:</p>
+
+    <pre><code>import asyncio
+from dataclasses import dataclass, field
+
+@dataclass
+class StreamSession:
+    session_id: str
+    chunks: list[str] = field(default_factory=list)
+    complete: bool = False
+
+# In-memory store; use Redis in production with a TTL
+sessions: dict[str, StreamSession] = {}
+
+async def stream_with_replay(request, model_client):
+    session_id = request.query.get("session_id")
+    last_event_id = request.headers.get("Last-Event-ID")
+
+    if session_id and session_id in sessions:
+        session = sessions[session_id]
+        start_idx = int(last_event_id) + 1 if last_event_id else 0
+
+        # Replay stored chunks from offset
+        for i, chunk in enumerate(session.chunks[start_idx:], start=start_idx):
+            yield f"id: {i}\ndata: {chunk}\n\n"
+
+        if session.complete:
+            yield "data: [DONE]\n\n"
+            return
+
+        # Continue live stream from where we left off
+        start_idx = len(session.chunks)
+    else:
+        session = StreamSession(session_id=session_id or generate_id())
+        sessions[session.session_id] = session
+        start_idx = 0
+
+    # Stream new generation, storing every chunk
+    async for chunk in model_client.stream(request.prompt):
+        session.chunks.append(chunk)
+        idx = len(session.chunks) - 1
+        yield f"id: {idx}\ndata: {chunk}\n\n"
+
+    session.complete = True
+    yield "data: [DONE]\n\n"</code></pre>
+
+    <p>This matters most for mobile clients where network transitions (WiFi to LTE) cause connection drops mid-stream. Without proper replay, a 2000-token response that drops at token 1500 forces the user to wait for the full generation again — and gets different text the second time. With replay, the reconnect picks up at token 1501 instantly from cache, and the user sees continuity.</p>
+
+    <p>Session storage has a natural TTL: keep chunks for the duration of a session plus a grace period (5 minutes is typically enough for reconnect). After that, the session is expired and a reconnect triggers a fresh generation with an appropriate error to the client.</p>
+
+    <h2>The first-token latency trap</h2>
+
+    <p>Streaming creates a perceptual illusion: the interface feels fast because text appears immediately after the first token. But "feels fast" and "is fast" are different measurements. Time To First Token (TTFT) — the interval between sending the request and receiving the first meaningful chunk — can be 2–5 seconds on cold inference infrastructure, during peak load, or with a long system prompt that requires significant prefill computation.</p>
+
+    <p>The trap is that TTFT is invisible in your throughput metrics. If you're measuring "time to stream completion," a response with a 4-second TTFT and 1-second generation time shows up identically to a response with 1-second TTFT and 4-second generation time. But the user experience is completely different. The first user sees a blank UI for 4 seconds before text appears. The second sees text almost immediately.</p>
+
+    <p>Measure TTFT explicitly, separated from throughput:</p>
+
+    <pre><code>import time
+import httpx
+
+async def call_with_ttft_measurement(client, payload):
+    request_start = time.perf_counter()
+    first_token_time = None
+    chunks_received = 0
+
+    async with client.stream("POST", "/v1/messages", json=payload) as response:
+        async for line in response.aiter_lines():
+            if not line.startswith("data: "):
+                continue
+            data = line[6:]
+            if data == "[DONE]":
+                break
+
+            event = json.loads(data)
+            if event.get("type") == "content_block_delta":
+                if first_token_time is None:
+                    first_token_time = time.perf_counter()
+                    ttft = first_token_time - request_start
+                    metrics.record("llm.ttft_seconds", ttft)
+                chunks_received += 1
+
+    total_time = time.perf_counter() - request_start
+    throughput_time = total_time - (first_token_time - request_start)
+    metrics.record("llm.throughput_seconds", throughput_time)
+    metrics.record("llm.chunks_received", chunks_received)</code></pre>
+
+    <p>On the UI side, the correct UX pattern is to decouple the loading state from the streaming state. Show a spinner until TTFT, then transition to the streaming render. A spinner for 3 seconds feels acceptable. A blank text box with a cursor for 3 seconds feels broken, even if the total time is identical.</p>
+
+    <pre><code>async function streamWithTTFT(prompt, onFirstToken, onChunk, onDone) {
+  const startTime = performance.now();
+  let firstTokenReceived = false;
+
+  const response = await fetch('/api/stream', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  });
+
+  // Show spinner immediately (caller renders spinner on button click)
+  // Switch to streaming render on first token
+
+  await consumeStream(response, (chunk) => {
+    if (!firstTokenReceived) {
+      firstTokenReceived = true;
+      const ttft = performance.now() - startTime;
+      console.log(`TTFT: ${ttft.toFixed(0)}ms`);
+      onFirstToken(); // caller hides spinner, shows text area
+    }
+    onChunk(chunk);
+  });
+
+  onDone();
+}</code></pre>
+
+    <p>TTFT degrades predictably with prompt length. Prefill (processing the input tokens) is typically 2–4× faster than generation, but on a 10k-token system prompt the prefill alone takes 1–2 seconds before the model generates a single output token. If your TTFT is high, the first place to look is prompt length — not generation speed.</p>
+
+    <h2>Timeout mismatches</h2>
+
+    <p>The most common streaming failure in production is a read timeout misconfiguration. The default read timeout in most HTTP clients — Python's <code>requests</code>, Node's <code>fetch</code>, <code>axios</code>, Go's <code>http.Client</code> — is between 30 and 60 seconds. A model generating 10,000 tokens at 40 tokens/second takes 250 seconds. The client drops the connection at second 30, the user sees an error, and your logs show a "timeout" with no indication that the issue is configuration rather than infrastructure.</p>
+
+    <table>
+      <thead>
+        <tr><th>Output tokens</th><th>At 40 tok/s</th><th>At 80 tok/s</th><th>Default 30s timeout</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>500</td><td>12.5s</td><td>6.3s</td><td class="good">OK</td></tr>
+        <tr><td>2,000</td><td>50s</td><td>25s</td><td class="bad">Fails at 40 tok/s</td></tr>
+        <tr><td>4,000</td><td>100s</td><td>50s</td><td class="bad">Always fails</td></tr>
+        <tr><td>8,000</td><td>200s</td><td>100s</td><td class="bad">Always fails</td></tr>
+      </tbody>
+    </table>
+
+    <p>The correct timeout strategy has two separate controls — connection timeout and read timeout — which most HTTP clients expose independently:</p>
+
+    <pre><code>import httpx
+
+# Correct: tight connection timeout, generous (or disabled) read timeout
+client = httpx.AsyncClient(
+    timeout=httpx.Timeout(
+        connect=5.0,   # 5s to establish TCP + TLS
+        read=300.0,    # 5 minutes for the response body
+        write=10.0,    # 10s to send the request body
+        pool=5.0,      # 5s to acquire a connection from the pool
+    )
+)
+
+# Wrong: single timeout applies to everything including response body
+client = httpx.AsyncClient(timeout=30.0)  # kills long streams</code></pre>
+
+    <p>Read timeout and stall detection are different things. A 300-second read timeout means "if no bytes arrive for 300 seconds, give up." That's too long to wait for a hung connection. The correct architecture is: set read timeout to your maximum expected generation time (300–600 seconds), and separately implement stall detection (no bytes for 10 seconds triggers an error) at the application layer. This way you distinguish "legitimately slow generation" from "connection is dead but TCP hasn't timed out yet."</p>
+
+    <pre><code>import asyncio
+import httpx
+
+async def stream_with_stall_detection(
+    client: httpx.AsyncClient,
+    payload: dict,
+    stall_timeout: float = 10.0,
+):
+    async with client.stream("POST", "/v1/messages", json=payload) as response:
+        async for line in response.aiter_lines():
+            # aiter_lines doesn't expose per-chunk timing directly;
+            # wrap with asyncio.wait_for for stall detection
+            try:
+                line = await asyncio.wait_for(
+                    anext(response.aiter_lines()),
+                    timeout=stall_timeout
+                )
+            except asyncio.TimeoutError:
+                raise StreamStallError(
+                    f"No data received for {stall_timeout}s — "
+                    "connection may be dead"
+                )
+
+            if line.startswith("data: "):
+                yield line[6:]</code></pre>
+
+    <div class="callout">
+      <strong>Infrastructure timeout hierarchy:</strong> your application read timeout must be less than your load balancer idle timeout, which must be less than your reverse proxy timeout. If nginx upstream timeout is 60s and your app read timeout is 300s, nginx kills the connection first and the app never fires its own timeout. Audit the entire chain: client → CDN → load balancer → reverse proxy → application → model API. Every hop has its own timeout, and the shortest one wins.
+    </div>
+
+    <p>For gateways that proxy LLM streams to downstream clients, the timeout problem compounds. Your gateway receives a stream from the model API on one connection and forwards it to the user on another. Each connection has its own timeout. If the upstream stream takes 200 seconds and your downstream client has a 60-second read timeout, the client drops at 60 seconds while your gateway continues consuming the upstream. You now have a zombie stream consuming inference resources for a request that already failed from the user's perspective. Implement bidirectional liveness checking: if the downstream connection drops, cancel the upstream stream immediately.</p>
+
+    <h2>Putting it together</h2>
+
+    <p>Each of these failure modes is independent but they compound. A mobile client with a 30-second read timeout on a slow connection hits backpressure, drops the connection at second 30, attempts to reconnect using <code>Last-Event-ID</code> which your server doesn't implement, restarts generation, gets different text, and the tool call that was mid-stream arrives as unparseable JSON. The user sees corrupted output and a loading spinner that never resolves.</p>
+
+    <p>The practical implementation checklist:</p>
+
+    <ul>
+      <li>Disable proxy buffering (<code>proxy_buffering off</code>) and gzip for all SSE endpoints</li>
+      <li>Set ALB/nginx idle timeout to 300+ seconds on streaming endpoints, or emit keepalive comment frames every 15 seconds</li>
+      <li>Implement stall detection at the client with a per-chunk timeout separate from the overall read timeout</li>
+      <li>Accumulate tool call arguments by <code>index</code> before parsing — never parse streaming fragments directly</li>
+      <li>Assign <code>id:</code> to every SSE event, store chunks server-side with a TTL, and replay from offset on reconnect</li>
+      <li>Measure TTFT separately from throughput; use a spinner until first token, then switch to streaming render</li>
+      <li>Set connection timeout to 5s and read timeout to 300–600s; implement application-layer stall detection at 10s</li>
+      <li>In gateway/proxy setups: cancel upstream streams immediately when downstream clients disconnect</li>
+    </ul>
+
+    <p>The streaming implementation in <a href="https://github.com/shadowmodder/llm-gateway">llm-gateway</a> handles all of these: buffering-safe SSE forwarding, stall detection, chunk storage for reconnect replay, TTFT instrumentation, and bidirectional connection lifecycle management.</p>
+
+    <a href="https://github.com/shadowmodder/llm-gateway" class="repo-link">
+      ↗ shadowmodder/llm-gateway
+    </a>
+
+    <p>Streaming LLMs is not hard to implement in a demo. It's hard to implement correctly under production conditions: intermittent networks, variable client hardware, proxy infrastructure that wasn't designed for long-lived HTTP responses, and the specific quirks of tool call serialization. The patterns above are each independently necessary — there's no single fix that covers all six failure modes. Ship them as a unit or you'll encounter the ones you skipped in your next 2am incident.</p>
+
+  </article>
+</div>
+
+</body>
+</html>
