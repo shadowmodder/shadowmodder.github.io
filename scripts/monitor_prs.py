@@ -39,6 +39,17 @@ LITELLM_KNOWN_UNFIXABLE = {
     "codecov/patch",
     "CodSpeed Benchmarks",
     "Code scanning results / CodeQL",
+    "benchmarks",              # CodSpeed timeout — infrastructure issue, not ours
+}
+
+# vLLM checks that require maintainer action (label or 4 merged PRs)
+VLLM_KNOWN_UNFIXABLE = {
+    "pre-run-check",           # requires 'ready' label from maintainer
+}
+
+REPO_UNFIXABLE = {
+    "BerriAI/litellm": LITELLM_KNOWN_UNFIXABLE,
+    "vllm-project/vllm": VLLM_KNOWN_UNFIXABLE,
 }
 
 FORK_USER = "shadowmodder"
@@ -193,7 +204,7 @@ def check_pr(repo, number, branch=None, is_litellm=False):
         return {"repo": repo, "number": number, "status": "❌ Closed", "note": "needs human review"}
 
     checks = get_checks(repo, number)
-    skip = LITELLM_KNOWN_UNFIXABLE if is_litellm else set()
+    skip = REPO_UNFIXABLE.get(repo, set())
     passing, failing, pending = checks_summary(checks, skip_names=skip)
 
     if failing:
