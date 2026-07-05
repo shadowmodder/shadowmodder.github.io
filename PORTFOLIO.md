@@ -14,9 +14,9 @@ Active sprint tracking. Updated each session.
 | [#32199](https://github.com/BerriAI/litellm/pull/32199) | BerriAI/litellm | Open — benchmarks timeout (not our code) | `reasoning_tokens` forced to `0` in Responses API proxy |
 | [#32200](https://github.com/BerriAI/litellm/pull/32200) | BerriAI/litellm | Open | Async cache streaming silently drops `reasoning_content` |
 | [#32205](https://github.com/BerriAI/litellm/pull/32205) | BerriAI/litellm | Open | `previous_response_id` double-encoded in MCP tool loops |
-| [#38678](https://github.com/langchain-ai/langchain/pull/38678) | langchain-ai/langchain | Open | Streaming tool call fires prematurely with empty args `{}` |
+| [#38680](https://github.com/langchain-ai/langchain/pull/38680) | langchain-ai/langchain | Open | Streaming tool call fires prematurely with empty args `{}` |
 | [#3391](https://github.com/huggingface/peft/pull/3391) | huggingface/peft | Open | `update_and_allocate` unreachable after `inject_adapter_in_model` |
-| [#6296](https://github.com/huggingface/trl/pull/6296) | huggingface/trl | Open | NaN logprobs crash in GRPO trainer with vLLM importance sampling |
+| [#6297](https://github.com/huggingface/trl/pull/6297) | huggingface/trl | Open | NaN logprobs crash in GRPO trainer with vLLM importance sampling |
 
 ### Investigated — no PR needed
 | Repo | Issue | Finding |
