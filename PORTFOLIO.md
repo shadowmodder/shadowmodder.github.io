@@ -19,7 +19,7 @@ When a PR merges, move it to the profile README and remove it here.
 | [#32199](https://github.com/BerriAI/litellm/pull/32199) | litellm | `reasoning_tokens` forced to `0` in Responses API proxy | — |
 | [#32200](https://github.com/BerriAI/litellm/pull/32200) | litellm | Async cache streaming drops `reasoning_content` | — |
 | [#32205](https://github.com/BerriAI/litellm/pull/32205) | litellm | `previous_response_id` double-encoded in MCP tool loops | — |
-| [issue #38679](https://github.com/langchain-ai/langchain/issues/38679) | langchain | Streaming tool call fires prematurely with empty args | [post](https://www.linkedin.com/posts/sudhirvissa_langchain-llm-opensource-activity-7346287543816716288-) |
+| [issue #38682](https://github.com/langchain-ai/langchain/issues/38682) | langchain | Streaming tool call fires prematurely with empty args | [post](https://www.linkedin.com/posts/sudhirvissa_langchain-llm-opensource-activity-7346287543816716288-) |
 | [#3391](https://github.com/huggingface/peft/pull/3391) | peft | `update_and_allocate` unreachable after `inject_adapter_in_model` | — |
 | [#6297](https://github.com/huggingface/trl/pull/6297) | trl | NaN logprobs crash in GRPO trainer with vLLM importance sampling | — |
 | [#2412](https://github.com/567-labs/instructor/pull/2412) | instructor | `Optional[NestedModel]` fields stored as raw dicts in streaming partials | — |
@@ -28,7 +28,7 @@ When a PR merges, move it to the profile README and remove it here.
 
 ### CI notes
 - **#32198, #32199** — LiteLLM benchmarks CI times out at GitHub's 15-min limit (CodSpeed). Not our code. Commented on both asking maintainer to rerun.
-- **LangChain** — Requires maintainer assignment before PR accepted. Issue #38679 open, approach commented, waiting for assignment. Fix is ready in fork branch `fix/streaming-tool-call-empty-args-sse-fragmentation`.
+- **LangChain** — Issue #38682 open (Type: Bug set via web form — bot should not auto-close). Approach commented, waiting for maintainer assignment. Fix ready on fork branch `fix/streaming-tool-call-empty-args-sse-fragmentation`.
 - **#6297** — Resubmit of #6296 (auto-closed: wrong PR template). Now uses full TRL template.
 
 ---
