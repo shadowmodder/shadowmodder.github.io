@@ -3,6 +3,7 @@
 Hourly PR CI monitor. Checks all open contribution PRs, auto-fixes
 ruff format/I001 failures in LiteLLM PRs, and writes /tmp/pr_status.md.
 """
+import base64
 import json
 import os
 import re
@@ -105,9 +106,12 @@ def clone_fork(repo_name, branch, clone_dir):
     if (clone_dir / ".git").exists():
         run(["git", "-C", str(clone_dir), "pull", "--ff-only"], capture_output=True)
         return True
+    pat = os.environ["FORK_PAT"]
+    auth = base64.b64encode(f"x-access-token:{pat}".encode()).decode()
     r = run(["git", "clone", "--depth", "1", "--filter=blob:none", "--sparse",
              "--branch", branch,
-             f"https://x-access-token:{os.environ['FORK_PAT']}@github.com/{FORK_USER}/{repo_name}.git",
+             "-c", f"http.extraheader=Authorization: Basic {auth}",
+             f"https://github.com/{FORK_USER}/{repo_name}.git",
              str(clone_dir)])
     return r.returncode == 0
 
@@ -275,7 +279,8 @@ def main():
     lines += ["", "---", f"*Monitoring {len(results)} PRs. Runs hourly.*"]
 
     report = "\n".join(lines)
-    Path("/tmp/pr_status.md").write_text(report)
+    out_path = Path(os.environ.get("PR_STATUS_PATH", "pr_status.md"))
+    out_path.write_text(report)
     print("\n" + report)
 
     # Exit 0 always — failures are reported via the issue, not the workflow status

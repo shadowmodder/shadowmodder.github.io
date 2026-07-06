@@ -29,13 +29,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.FORK_PAT || github.token }}
           FORK_PAT: ${{ secrets.FORK_PAT }}
+          PR_STATUS_PATH: pr_status.md
         run: python scripts/monitor_prs.py
 
       - name: Post status issue
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -f /tmp/pr_status.md ]; then
+          if [ -f pr_status.md ]; then
             # Find existing open monitor issue
             ISSUE_NUM=$(gh issue list --repo shadowmodder/shadowmodder.github.io \
               --label "pr-monitor" --state open --json number -q '.[0].number' 2>/dev/null || echo "")
@@ -43,9 +44,9 @@ jobs:
               gh issue create --repo shadowmodder/shadowmodder.github.io \
                 --title "PR CI Status" \
                 --label "pr-monitor" \
-                --body-file /tmp/pr_status.md
+                --body-file pr_status.md
             else
               gh issue edit "$ISSUE_NUM" --repo shadowmodder/shadowmodder.github.io \
-                --body-file /tmp/pr_status.md
+                --body-file pr_status.md
             fi
           fi
