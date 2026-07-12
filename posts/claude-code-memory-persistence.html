@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code Has No Memory. Here's How to Fix That. — Sudhir Vissa</title>
+<meta name="description" content="Every Claude Code session starts blank. CLAUDE.md helps, but there's more — from auto-memory to cloud sync. A practical guide to persistent context.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" style="font-weight:600;font-size:16px;color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="/portfolio.html">Portfolio</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a class="back-link" href="/">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">claude code</span>
+      <span class="tag">productivity</span>
+      <span class="tag">workflow</span>
+    </div>
+    <h1>Claude Code Has No Memory. Here's How to Fix That.</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; 7 min read</div>
+  </div>
+
+  <article>
+
+    <p>Every new Claude Code session starts completely blank. Your repo context, coding conventions, in-progress decisions — gone. Claude asks what you were working on. You explain it again. This isn't a bug; it's how the stateless API works. But it means the tool that's supposed to accelerate you is burning the first ten minutes of every session on re-orientation.</p>
+
+    <p>There are three distinct tools for solving this, and most people only know the first one.</p>
+
+    <h2>CLAUDE.md: the memory file Claude Code reads automatically</h2>
+
+    <p>CLAUDE.md is a plain text file that Claude Code reads at the start of every session. It's the most reliable form of persistent context because it's just a file — no magic, no configuration, no sync required.</p>
+
+    <p>Claude Code checks two locations:</p>
+
+    <ul>
+      <li><code>~/.claude/CLAUDE.md</code> — global, applies to every project on this machine</li>
+      <li><code>CLAUDE.md</code> at the root of your project — project-specific, typically committed to the repo</li>
+    </ul>
+
+    <p>Both are read simultaneously. There's no override mechanism — Claude Code synthesizes all context it can find, with more-specific (project-level) instructions generally taking precedence when there's a conflict.</p>
+
+    <p>A minimal global CLAUDE.md:</p>
+
+<pre><code># Preferences
+
+- TypeScript strict mode everywhere. Never disable a strict check without a comment.
+- pnpm over npm
+- Commit messages: conventional commits (feat/fix/chore/docs)
+- Never write comments that restate what the code does
+- Tests: prefer integration over mocks; mocks masked a production bug last year
+- `pnpm test -- --run` to avoid watch mode when running tests manually</code></pre>
+
+    <p>And a project-level one for a Node.js monorepo:</p>
+
+<pre><code># forgein-platform
+
+Architecture: pnpm monorepo
+- apps/web — Next.js App Router (app.forgein.ai)
+- apps/api — Express (api.forgein.ai)
+- apps/worker — BullMQ jobs
+- packages/db — Drizzle ORM (rebuild: `cd packages/db && npm run build` on schema changes)
+
+## Key patterns
+- Route groups: (app)/ and (auth)/ — parens excluded from URL paths
+- Sidebar width: --sw CSS variable drives both sidebar and main margin simultaneously
+- Tier display: isPro gates features, isTeam changes label text only
+
+## Current focus
+Stripe Team billing — all 4 price IDs in k8s secret, webhook endpoint needs load test</code></pre>
+
+    <p>Claude reads this before it reads anything else. It shapes every response in the session.</p>
+
+    <h2>What to put in CLAUDE.md — and what to skip</h2>
+
+    <p>The most common mistake is trying to document the codebase. CLAUDE.md is for things Claude can't derive by reading the files: hidden constraints, team conventions, current focus, anti-patterns to avoid.</p>
+
+    <p><strong>Works well:</strong></p>
+    <ul>
+      <li>Workflow commands: what to run, what flags to use, what ports things start on</li>
+      <li>Conventions that aren't enforced by tooling: commit format, PR process, branch naming</li>
+      <li>Architecture decisions: the non-obvious reasons a pattern was chosen</li>
+      <li>Current focus: what you're actively working on so Claude doesn't suggest conflicting changes</li>
+      <li>Explicit anti-patterns: frameworks or approaches you've already decided against</li>
+    </ul>
+
+    <p><strong>Doesn't work:</strong></p>
+    <ul>
+      <li>File-by-file documentation (Claude will read the files)</li>
+      <li>Exhaustive API references (Claude can grep for them)</li>
+      <li>Anything that will be stale in two weeks and you won't remember to update</li>
+    </ul>
+
+    <p>The right mental model: CLAUDE.md is a briefing document for a contractor who's smart and will read the code. What they need is the non-obvious context that isn't in the files.</p>
+
+    <h2>The limits of CLAUDE.md</h2>
+
+    <p>CLAUDE.md is static. You edit it manually. It lives in your repo or at <code>~/.claude/</code> and doesn't leave the machine unless you commit it or copy it yourself.</p>
+
+    <p>Three gaps follow from this:</p>
+
+    <ul>
+      <li><strong>Machine drift</strong> — your global CLAUDE.md on your laptop diverges from what's on your work desktop</li>
+      <li><strong>Manual maintenance</strong> — you have to remember to update it when the project changes</li>
+      <li><strong>No accumulation</strong> — corrections you make during sessions don't feed back into the file automatically</li>
+    </ul>
+
+    <p>For solo developers on one machine, manageable. For anyone working across machines or with a team, real friction.</p>
+
+    <h2>Auto-memory: what Claude Code learns on its own</h2>
+
+    <p>Claude Code has a built-in auto-memory feature (Settings → Memory). When enabled, Claude surfaces memories worth keeping — corrections you made, preferences you expressed, patterns you established — and writes them to structured files in <code>~/.claude/projects/&lt;project&gt;/</code>.</p>
+
+    <p>These are plain markdown files, same format as CLAUDE.md. The difference is that Claude is writing them as you work, not you writing them upfront. A session where you push back on three suggestions produces three memory files. The next session opens with Claude already knowing those three things.</p>
+
+    <div class="fig">
+      <div class="label">~/.claude/projects/-Users-sid-projects-myapp/</div>
+      <span class="hi">feedback-no-mocks-in-tests.md</span><br>
+      <span class="hi">feedback-idempotent-webhooks.md</span><br>
+      <span class="hi">user-prefers-pnpm.md</span><br>
+      <span class="dim">MEMORY.md  ← index file</span>
+    </div>
+
+    <p>The weakness is the same as CLAUDE.md: these files live on one machine. They don't roam.</p>
+
+    <h2>Cloud sync: when one machine isn't enough</h2>
+
+    <p>If you work across machines, or you want teammates to share context, you need something that bridges sessions at the cloud layer.</p>
+
+    <p>This is what <a href="https://forgein.ai">forgein</a> does. It syncs your auto-memory files to a cloud store and makes them available in any Claude Code session on any machine. The setup takes about two minutes:</p>
+
+    <ol>
+      <li>Sign up at <a href="https://app.forgein.ai">app.forgein.ai</a> and install the forgein skill into Claude Code (Settings → Skills → add from the <a href="https://github.com/shadowmodder/forgein">shadowmodder/forgein</a> registry)</li>
+      <li><code>/forgein auth</code> — authenticates the CLI, stores the token at <code>~/.config/forgein/token</code></li>
+      <li><code>/forgein mem sync</code> — pushes your local memory files to the cloud</li>
+    </ol>
+
+    <p>On any other machine: install the skill, authenticate, run <code>/forgein mem sync</code> again. Your memories pull down. New machine, same context as the one you left.</p>
+
+    <div class="callout">
+      <strong>For teams:</strong> each engineer can sync a shared context layer — coding conventions, architecture decisions, current focus. Anyone starting a fresh session gets the team's current state, not just what's in the repo. The memories are project-scoped, so they don't collide across different repos.
+    </div>
+
+    <p>You can also search across all memories in a session with <code>/forgein mem search &lt;query&gt;</code> — useful when you know you captured a decision but can't remember which session it was in.</p>
+
+    <h2>The practical starting point</h2>
+
+    <p>In order of ROI:</p>
+
+    <ol>
+      <li>Write a <code>~/.claude/CLAUDE.md</code> with your global preferences. Language, tooling, commit style, things you hate. Takes fifteen minutes, pays off on the next session.</li>
+      <li>Add a <code>CLAUDE.md</code> at the root of your main project. Commit it. Architecture, commands, current focus.</li>
+      <li>Enable auto-memory in Claude Code settings. Let it accumulate for a week before evaluating.</li>
+      <li>If you work across machines or with a team, set up forgein to sync the accumulated files.</li>
+    </ol>
+
+    <p>The first two steps alone eliminate most of the re-orientation tax. Steps three and four make the context smarter and portable without any ongoing effort.</p>
+
+  </article>
+
+  <div style="margin-top:56px;padding-top:24px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);display:flex;align-items:center;gap:12px;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fshadowmodder.github.io%2Fposts%2Fclaude-code-memory-persistence.html&count_bg=%2358a6ff&title_bg=%23161b22&icon=&icon_color=%23e6edf3&title=views&edge_flat=true" alt="page views" style="height:20px;">
+  </div>
+
+</div>
+
+</body>
+</html>

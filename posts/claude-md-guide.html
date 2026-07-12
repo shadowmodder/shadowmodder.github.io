@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLAUDE.md: Everything You Can Put in Claude Code's Memory File — Sudhir Vissa</title>
+<meta name="description" content="Three levels of hierarchy, cross-file imports, and a concrete example for each. A complete reference for CLAUDE.md — the most underused feature in Claude Code.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" style="font-weight:600;font-size:16px;color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="/portfolio.html">Portfolio</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a class="back-link" href="/">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">claude code</span>
+      <span class="tag">CLAUDE.md</span>
+      <span class="tag">developer tools</span>
+    </div>
+    <h1>CLAUDE.md: Everything You Can Put in Claude Code's Memory File</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; 6 min read</div>
+  </div>
+
+  <article>
+
+    <p>CLAUDE.md is the most underused feature in Claude Code. Most people know it exists, few know the full scope: three separate levels of hierarchy, cross-file imports, tight integration with auto-memory, and a specific loading order that determines what gets priority. This is a complete reference.</p>
+
+    <h2>The three levels</h2>
+
+    <p>Claude Code reads CLAUDE.md files from three locations, loaded simultaneously at the start of every session:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>Path</th>
+          <th>Scope</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Global</td>
+          <td><code>~/.claude/CLAUDE.md</code></td>
+          <td>Every project on this machine</td>
+        </tr>
+        <tr>
+          <td>Project root</td>
+          <td><code>CLAUDE.md</code> in your working directory</td>
+          <td>This project; commit to repo so the team benefits</td>
+        </tr>
+        <tr>
+          <td>Sub-directory</td>
+          <td><code>CLAUDE.md</code> in any sub-directory Claude navigates to</td>
+          <td>That directory only; useful for monorepos</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>All three are loaded and combined. There's no strict override — Claude synthesizes all context it finds, with the more-specific file generally winning when instructions conflict directly. If your global file says "use tabs" and your project file says "use spaces," Claude Code sees both and defers to the project-level instruction.</p>
+
+    <h2>What goes at each level</h2>
+
+    <p><strong>Global</strong> is for preferences that don't change across projects: your default language, testing philosophy, commit message format, tools you use everywhere, and habits you want enforced everywhere. Think of it as your developer profile.</p>
+
+    <p><strong>Project-level</strong> is for everything specific to this codebase: architecture, commands to run, current working context, and constraints that aren't obvious from the code. This file belongs in version control. Every engineer on the team benefits from it, and it evolves alongside the project.</p>
+
+    <p><strong>Sub-directory</strong> files are useful in large monorepos where packages have genuinely different conventions — a React frontend with different lint rules than a Go service, or a data pipeline that needs different tooling than the API layer.</p>
+
+    <h2>A concrete global CLAUDE.md</h2>
+
+<pre><code># Preferences
+
+Language: TypeScript (strict: true). Never disable a strict check without explaining why.
+Package manager: pnpm
+Testing: avoid mocks where possible — prefer integration tests against real dependencies.
+Commits: conventional commits (feat/fix/chore/docs/test). Never mention tools in commit messages.
+Comments: only write them when the WHY is non-obvious. Never restate what the code does.
+
+# Things I hate
+- Barrel files (index.ts that re-exports everything)
+- console.log left in production code
+- Optional chaining when the value is never actually undefined in practice
+- TODO comments without a ticket reference
+- Over-abstracted helpers for code that's only used in one place</code></pre>
+
+    <p>Short enough to scan in two seconds. Specific enough to actually change Claude's default behavior.</p>
+
+    <h2>A concrete project-level CLAUDE.md</h2>
+
+<pre><code># my-saas-platform
+
+Architecture: pnpm monorepo
+- apps/web  — Next.js App Router (frontend)
+- apps/api  — Express REST API
+- apps/worker — BullMQ background jobs
+- packages/db — Drizzle ORM + generated types
+                 Rebuild: `cd packages/db && npm run build` when schema changes
+
+## Commands
+- dev: `pnpm dev` (turborepo starts all apps)
+- test: `pnpm test -- --run` (non-watch)
+- migrate: `pnpm --filter @myapp/db run migrate`
+
+## Non-obvious patterns
+- Sidebar uses a --sw CSS variable for width; both sidebar and main content reference it
+- Route groups use parens: (app)/ and (auth)/. Parens are excluded from URL paths.
+- Paid tier logic: isPro = tier === 'pro' || tier === 'team'. CSS class stays .pill-pro for both;
+  only label text changes. Never gate features on isTeam alone.
+
+## What we're actively working on
+Stripe Team billing — price IDs are in k8s secrets. Webhook endpoint needs testing.
+Don't touch auth middleware — legal review pending.</code></pre>
+
+    <p>This is committed to the repo. Every engineer who opens a Claude Code session in this project gets this context without any setup.</p>
+
+    <h2>The @import syntax</h2>
+
+    <p>You can pull in other files from within CLAUDE.md using the <code>@</code> import syntax:</p>
+
+<pre><code># Project context
+
+@docs/architecture-decisions.md
+@CONVENTIONS.md</code></pre>
+
+    <p>Claude Code reads those files inline, as if their content appeared directly in CLAUDE.md. This is useful when conventions are already documented elsewhere — you don't duplicate them, you just reference them. The path is relative to the file containing the import.</p>
+
+    <p>It supports any plain text or markdown file. The most common use case is importing an architecture decision record or a conventions document that the team was already maintaining.</p>
+
+    <h2>What auto-memory adds to this picture</h2>
+
+    <p>CLAUDE.md is what you write upfront. Auto-memory is what Claude writes during your sessions.</p>
+
+    <p>With Settings → Memory enabled, Claude Code stores corrections and preferences as it learns them — in <code>~/.claude/projects/&lt;project&gt;/</code> as structured markdown files. If you push back on a suggestion, if you say "no, we don't do it that way," if you establish a pattern — Claude captures it as a separate memory file and loads it in future sessions.</p>
+
+    <div class="fig">
+      <div class="label">how context layers stack</div>
+      <span class="hi">~/.claude/CLAUDE.md</span>           <span class="dim">← your global preferences</span><br>
+      <span class="hi">CLAUDE.md</span>                      <span class="dim">← this project's context</span><br>
+      <span class="accent">~/.claude/projects/…/*.md</span>  <span class="dim">← what Claude learned this month</span><br>
+      <span class="dim">────────────────────────────────</span><br>
+      <span class="warn">combined context at session start</span>
+    </div>
+
+    <p>The combination is more durable than either alone. CLAUDE.md captures what you know to document before starting. Auto-memory captures what Claude learns by doing. Neither replaces the other.</p>
+
+    <h2>Version control strategy</h2>
+
+    <p><strong>Commit your project-level CLAUDE.md.</strong> It's documentation. It improves the experience for the whole team. Update it when architecture changes, when you finish a major feature, when focus shifts. Treat it like a living document, not static config.</p>
+
+    <p><strong>Don't commit your global</strong> <code>~/.claude/CLAUDE.md</code>. It's personal. If you work across machines, manage it through your dotfiles repo or copy it manually.</p>
+
+    <p><strong>Auto-memory files are machine-local by default.</strong> If you want them to follow you across machines, <a href="https://forgein.ai">forgein</a> syncs them to the cloud: install the skill into Claude Code, run <code>/forgein auth</code> once, then <code>/forgein mem sync</code> to push and pull. On your next machine, the same accumulated context is waiting.</p>
+
+    <h2>Common mistakes</h2>
+
+    <p><strong>Too long.</strong> If your CLAUDE.md is several hundred lines, most of it won't be useful. Claude Code loads it all, but sheer volume doesn't help — specificity does. Prefer twenty specific constraints over two hundred vague ones.</p>
+
+    <p><strong>Documenting what's in the code.</strong> If Claude can grep for it or read it from the file system, it doesn't belong in CLAUDE.md. Architecture decisions that aren't obvious from the code do belong there. File-by-file inventories don't.</p>
+
+    <p><strong>Never updating it.</strong> A CLAUDE.md that describes what the project looked like six months ago is worse than no CLAUDE.md — it actively misleads. Treat it like documentation you'd want a new teammate to find accurate. Update it when you'd update a README.</p>
+
+    <div class="callout">
+      <strong>Quick audit:</strong> read your CLAUDE.md and ask "could Claude figure this out by reading the files?" For every line where the answer is yes, delete it. What's left is the part that's actually doing work.
+    </div>
+
+    <p>The ceiling here is surprisingly high. A well-maintained CLAUDE.md makes Claude Code feel like it has continuity — like it was there last week, knows the codebase, and doesn't need to be re-briefed. That's the version of the tool worth building toward.</p>
+
+  </article>
+
+  <div style="margin-top:56px;padding-top:24px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);display:flex;align-items:center;gap:12px;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fshadowmodder.github.io%2Fposts%2Fclaude-md-guide.html&count_bg=%2358a6ff&title_bg=%23161b22&icon=&icon_color=%23e6edf3&title=views&edge_flat=true" alt="page views" style="height:20px;">
+  </div>
+
+</div>
+
+</body>
+</html>
