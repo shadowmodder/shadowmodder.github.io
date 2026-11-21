@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A 500 on User Input Is Always a Validation Bug — Sudhir Vissa</title>
+<meta name="description" content="vLLM&#x27;s Responses API 500&#x27;d on an empty assistant content list. The fix: reject at the boundary with a 400, per the team&#x27;s own precedent.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:last-child td { border-bottom: none; }
+  .good { color: var(--green); font-weight: 500; }
+  .bad { color: var(--red); font-weight: 500; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  .repo-link { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+  .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+
+  .signature { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--border); }
+  .signature .sig-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 12px; }
+  .signature .sig-name { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-style: italic; color: var(--text); margin-bottom: 6px; }
+  .signature .sig-line { font-size: 12.5px; color: var(--muted); letter-spacing: .02em; line-height: 1.75; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="/portfolio.html">Portfolio</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a href="/" class="back-link">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">LLM</span>
+      <span class="tag">vLLM</span>
+      <span class="tag">API design</span>
+      <span class="tag">bugs</span>
+    </div>
+    <h1>A 500 on User Input Is Always a Validation Bug</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; November 2026 &nbsp;·&nbsp; 5 min read</div>
+  </div>
+
+  <article>
+    <p>Here's a rule I hold myself to: if user input can produce a 500, the bug is in validation, not in the code that crashed. The crash is just where the missing check became visible.</p>
+
+    <p>vLLM's Responses API had a clean instance. Sending an assistant message with an empty content list — <code>{"type": "message", "role": "assistant", "content": []}</code> — in the <code>input</code> array of a <code>/v1/responses</code> request passed request validation without complaint. The item got coerced into a <code>ResponseOutputMessage</code> with <code>content=[]</code>, traveled through the serving layer, and then died in rendering:</p>
+
+<pre><code>IndexError: list index out of range
+  at _construct_message_from_response_item (item.content[0].text)</code></pre>
+
+    <p>The client got a 500. Nothing about their request was unreasonable enough to deserve one — an empty list is a degenerate but well-formed input, and the API's own types (<code>ResponseOutputMessage</code> allows <code>content=[]</code>) accepted it.</p>
+
+    <h2>Two layers, two contracts</h2>
+
+    <p>The root cause sat in <code>input_item_parsing</code> in <code>vllm/entrypoints/openai/responses/protocol.py</code>: when coercing assistant messages with list content, it added the id, status, and annotations but never checked whether the content list was empty. Validation said yes; the renderer assumed non-empty. Two layers, two different contracts, and the gap between them was a 500.</p>
+
+    <p>The fix follows the precedent the vLLM team itself set in <a href="https://github.com/vllm-project/vllm/issues/55974">#55974</a> — "reject with 400 instead of 500." In <code>input_item_parsing</code>, raise <code>VLLMValidationError("Assistant message content must not be empty.", parameter="input")</code> when an assistant message arrives with an empty content list. One check, at the boundary, before the object ever enters the system. A regression test asserts the 400 and that non-empty messages still validate fine.</p>
+
+    <a href="https://github.com/vllm-project/vllm/pull/64941" class="repo-link">
+      ↗ vllm-project/vllm#64941
+    </a>
+
+    <h2>Validate the invariants, not just the shapes</h2>
+
+    <p>The general lesson: validate at the boundary, and validate the <em>invariants your downstream code assumes</em>, not just the shapes your schema declares. Pydantic will happily tell you <code>content</code> is a list. It won't tell you the renderer needs that list to be non-empty. Every <code>content[0]</code> in your codebase is a validation obligation somewhere upstream — go find the ones that don't have it.</p>
+
+    <p>And when you fix one, check the siblings: empty reasoning items, <code>None</code> content, missing text fields. In this case the neighbors were all handled. The one that wasn't is always the one nobody wrote down.</p>
+
+    <p>There's a process version of this too. The vLLM team had already decided the policy in #55974 — bad input gets a 400, not a 500. Precedents like that are only useful if new code is checked against them. When your team establishes a "this class of input is rejected at the boundary" rule, the follow-through is grepping for the next instance, not just fixing the reported one. The bug I found was the second occurrence of a decided question.</p>
+
+    <h2>For the record</h2>
+
+    <p>I found this bug and filed the fix — <a href="https://github.com/vllm-project/vllm/pull/64941">#64941</a>, then a revised version, <a href="https://github.com/vllm-project/vllm/pull/66475">#66475</a>. By the time my PRs were sitting in vLLM's review queue, the same ground had already been covered upstream: <a href="https://github.com/vllm-project/vllm/pull/35508">#35508</a> by anencore94, which normalizes Responses input items to match the OpenAI SDK's requirements, had landed the correct behavior on main. When a test against current main showed the 400 already coming back, I closed both of my PRs. Credit where it's due — the fix in the tree is theirs.</p>
+
+    <p>I'm publishing the analysis anyway. The find was real even though the merge isn't mine, and the validation gap is the part worth remembering. Spotting a bug first is worth little; what counts is whose fix ships.</p>
+
+    <div class="signature">
+      <div class="sig-label">Correspondence</div>
+      <div class="sig-name">Sudhir Vissa</div>
+      <p class="sig-line">AI/ML Leader &nbsp;·&nbsp; Sage7 AI &nbsp;·&nbsp; Austin, Texas<br>
+      sudhir.vissa@sage7.ai &nbsp;·&nbsp; <a href="https://shadowmodder.github.io">shadowmodder.github.io</a> &nbsp;·&nbsp; <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a></p>
+    </div>
+
+  </article>
+</div>
+
+</body>
+</html>
