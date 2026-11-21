@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Cache Key Is Missing the Destination — Sudhir Vissa</title>
+<meta name="description" content="LiteLLM&#x27;s response cache keyed on model, messages, and params — but not api_base. Two backends, one cache key, silent cross-tenant poisoning.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --tag-bg: #1f2937;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+  .site-header .inner { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+  .site-header .name { font-weight: 600; font-size: 16px; color: var(--text); }
+  .site-header nav { display: flex; gap: 20px; }
+  .site-header nav a { color: var(--muted); font-size: 14px; }
+  .site-header nav a:hover { color: var(--text); text-decoration: none; }
+
+  .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .back-link:hover { color: var(--text); text-decoration: none; }
+
+  .article-header { margin-bottom: 40px; }
+  .article-header .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .article-header .tag { background: var(--tag-bg); color: var(--muted); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+  .article-header h1 { font-size: 30px; font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+  .article-header .byline { color: var(--muted); font-size: 13px; }
+
+  article { color: #cdd9e5; }
+  article h2 { font-size: 20px; font-weight: 600; margin: 44px 0 14px; color: var(--text); padding-top: 4px; border-top: 1px solid var(--border); }
+  article h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  article p { margin-bottom: 18px; line-height: 1.78; }
+  article ul, article ol { margin: 0 0 18px 22px; }
+  article li { margin-bottom: 7px; line-height: 1.72; }
+  article strong { color: var(--text); font-weight: 600; }
+  article em { color: #a5b4c8; }
+  article code { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 13px; background: #1c2128; border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #e6edf3; }
+  article pre { background: #1c2128; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 0 0 24px; }
+  article pre code { background: none; border: none; padding: 0; font-size: 13px; line-height: 1.6; color: #cdd9e5; }
+
+  .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 28px; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+  .fig .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+  .fig .hi { color: var(--green); }
+  .fig .bad { color: var(--red); }
+  .fig .warn { color: var(--yellow); }
+  .fig .dim { color: #484f58; }
+  .fig .accent { color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 28px; font-size: 14px; }
+  th { text-align: left; padding: 8px 14px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:last-child td { border-bottom: none; }
+  .good { color: var(--green); font-weight: 500; }
+  .bad { color: var(--red); font-weight: 500; }
+
+  .callout { background: #1c2128; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 18px; margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #a5b4c8; }
+  .callout strong { color: var(--text); }
+
+  .repo-link { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+  .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 24px; }
+    .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+
+  .signature { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--border); }
+  .signature .sig-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 12px; }
+  .signature .sig-name { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-style: italic; color: var(--text); margin-bottom: 6px; }
+  .signature .sig-line { font-size: 12.5px; color: var(--muted); letter-spacing: .02em; line-height: 1.75; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="name" style="color:var(--text)">Sudhir Vissa</a>
+    <nav>
+      <a href="/">Writing</a>
+      <a href="/portfolio.html">Portfolio</a>
+      <a href="https://github.com/shadowmodder">GitHub</a>
+      <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<div class="article-wrap">
+  <a href="/" class="back-link">← All posts</a>
+
+  <div class="article-header">
+    <div class="tags">
+      <span class="tag">LLM</span>
+      <span class="tag">caching</span>
+      <span class="tag">litellm</span>
+      <span class="tag">bugs</span>
+    </div>
+    <h1>Your Cache Key Is Missing the Destination</h1>
+    <div class="byline">Sudhir Vissa &nbsp;·&nbsp; November 2026 &nbsp;·&nbsp; 5 min read</div>
+  </div>
+
+  <article>
+    <p>There is a class of cache bug that never shows up in your tests, because your tests only ever talk to one backend.</p>
+
+    <p>The principle is simple: a cache key must capture the <em>full identity of the request</em>. Model, messages, parameters — and where the request is going. Miss any of those and the cache starts answering questions nobody asked it.</p>
+
+    <p>I ran into this in LiteLLM's response cache. <code>Cache.get_cache_key()</code> builds its key from the model name, the messages, and the litellm-owned kwargs — but never includes <code>api_base</code>. Two calls that differ only in destination produce byte-identical keys:</p>
+
+<pre><code>litellm.cache = Cache(type="local")
+r1 = litellm.completion(model="gpt-4o", messages=[{"role": "user", "content": "hi"}],
+                        api_base="https://backend-a.example/v1",
+                        mock_response="answer from A")
+r2 = litellm.completion(model="gpt-4o", messages=[{"role": "user", "content": "hi"}],
+                        api_base="https://backend-b.example/v1",
+                        mock_response="answer from B")
+r2.content  # "answer from A" — poisoned</code></pre>
+
+    <p>The second call never touches backend B. It gets backend A's cached response. In production that means one tenant's data served to another, or a staging model answering production traffic — silently, with a 200 and full confidence.</p>
+
+    <h2>Where the dimension got lost</h2>
+
+    <p>The root cause was in <code>_get_model_param_value</code> in <code>litellm/caching/caching.py</code>: the model component of the key only considered the model name, the model group, and the caching group. <code>api_base</code> is a litellm-owned kwarg, so it was excluded from the generic kwarg loop and never added explicitly. The docs even claim exact-match caches "key on a hash of the whole request" — but the destination wasn't considered part of the request.</p>
+
+    <p>The fix is small and surgical: in the direct-call path (no caching group, no model group), append the <code>api_base</code> to the key material when it's set. Router and proxy flows are untouched by construction — they always inject <code>model_group</code> into the metadata, so cross-deployment sharing for one model group keeps working exactly as before. Requests without <code>api_base</code> produce byte-identical keys to before, so it's a one-time invalidation only for the requests that were broken.</p>
+
+    <a href="https://github.com/BerriAI/litellm/issues/49551" class="repo-link">
+      ↗ BerriAI/litellm#49551
+    </a>
+
+    <h2>The audit</h2>
+
+    <p>The takeaway for anyone building on LLM gateways: enumerate your cache key dimensions explicitly and write a test that varies each one. The dimensions people forget are always the environmental ones — endpoint, region, API version, tenant. Your unit tests hit one backend, so this class of bug is invisible until production. A cache that answers confidently and wrong is worse than no cache at all.</p>
+
+    <p>There's a useful audit for this: for every parameter your serving layer accepts, ask whether two requests differing only in that parameter should ever share a cached response. If the answer is no, it belongs in the key. Do this once per cache, in a table, and review it whenever a new parameter is added. The litellm case is what happens when the table was never written down — <code>api_base</code> was added as a feature, the key was designed earlier, and nobody re-checked the invariant.</p>
+
+    <div class="signature">
+      <div class="sig-label">Correspondence</div>
+      <div class="sig-name">Sudhir Vissa</div>
+      <p class="sig-line">AI/ML Leader &nbsp;·&nbsp; Sage7 AI &nbsp;·&nbsp; Austin, Texas<br>
+      sudhir.vissa@sage7.ai &nbsp;·&nbsp; <a href="https://shadowmodder.github.io">shadowmodder.github.io</a> &nbsp;·&nbsp; <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a></p>
+    </div>
+
+  </article>
+</div>
+
+</body>
+</html>

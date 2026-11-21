@@ -104,6 +104,30 @@
 <div class="post-list">
   <h2>Posts</h2>
 
+<div class="post-card">
+    <div class="tags">
+      <span class="tag">LLM</span>
+      <span class="tag">vLLM</span>
+      <span class="tag">API design</span>
+      <span class="tag">bugs</span>
+    </div>
+    <h3><a href="/posts/500-on-user-input-is-validation-bug.html">A 500 on User Input Is Always a Validation Bug</a></h3>
+    <p>vLLM's Responses API 500'd on an empty assistant content list. The fix: reject at the boundary with a 400, per the team's own precedent — and validate the invariants your downstream code assumes, not just the shapes your schema declares.</p>
+    <div class="meta">November 2026 &nbsp;·&nbsp; 5 min read</div>
+  </div>
+
+<div class="post-card">
+    <div class="tags">
+      <span class="tag">LLM</span>
+      <span class="tag">caching</span>
+      <span class="tag">litellm</span>
+      <span class="tag">bugs</span>
+    </div>
+    <h3><a href="/posts/cache-key-missing-destination.html">Your Cache Key Is Missing the Destination</a></h3>
+    <p>LiteLLM's response cache keyed on model, messages, and params — but not api_base. Two backends, one cache key, silent cross-tenant poisoning. Enumerate your cache key dimensions explicitly.</p>
+    <div class="meta">November 2026 &nbsp;·&nbsp; 5 min read</div>
+  </div>
+
   <div class="post-card">
     <div class="tags">
       <span class="tag">AI tools</span>
