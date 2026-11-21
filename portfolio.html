@@ -106,7 +106,7 @@
 
   <div class="hero">
     <h1>Portfolio</h1>
-    <p>ML/LLM engineer focused on the parts that actually decide whether ML works in production — evaluation, calibration, thresholds, drift, serving, and agentic systems. 20+ years, ~50 patents.</p>
+    <p>ML/LLM engineer focused on the parts that actually decide whether ML works in production — evaluation, calibration, thresholds, drift, serving, and agentic systems. 20+ years. 42 granted U.S. patents, 604 citations.</p>
     <div class="links">
       <a href="https://github.com/shadowmodder">⬡ github.com/shadowmodder</a>
       <a href="https://linkedin.com/in/sudhirvissa">in linkedin.com/in/sudhirvissa</a>
@@ -117,15 +117,132 @@
   <!-- UPSTREAM CONTRIBUTIONS -->
   <div class="section">
     <div class="section-title">Upstream contributions</div>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Bug fixes to production ML/LLM libraries used by millions of developers. All PRs include reproduction case and regression tests.</p>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Bug fixes to production ML/LLM libraries used by millions of developers — 19 upstream PRs: 3 merged, 1 approved, the rest in review. All PRs include a reproduction case and regression tests.</p>
     <div class="pr-list">
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge merged">🟣 Merged</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">weaviate/weaviate-python-client · #2244</div>
+          <div class="pr-title"><a href="https://github.com/weaviate/weaviate-python-client/pull/2244">fix(users): report Go zero time <code>created_at</code> as None for db users</a></div>
+          <div class="pr-desc">Env-defined users came back with <code>created_at</code> = <code>datetime(1, 1, 1)</code> — the server's Go zero time passed straight through, though the field is <code>Optional</code> and <code>lastUsedAt</code> already mapped to None. Routed <code>createdAt</code> through the zero-time helper in <code>get()</code> and <code>list_all()</code>; per maintainer review, coverage lives in the real-server integration suite.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge merged">🟣 Merged</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">vllm-project/vllm · #66473</div>
+          <div class="pr-title"><a href="https://github.com/vllm-project/vllm/pull/66473">[Bugfix][Multimodal] Domain-separate content digests and caller uuids in mm hashes</a></div>
+          <div class="pr-desc"><code>get_mm_hashes()</code> emitted content digests and caller-chosen uuids into one untagged keyspace, so a caller could poison the multimodal processor and encoder caches for later callers by setting <code>uuid</code> to a target item's predictable digest. Fix: prefix every hash with its source domain (<code>content:</code> / <code>uuid:</code>) at the single choke point.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge merged">🟣 Merged</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">567-labs/instructor · #2902</div>
+          <div class="pr-title"><a href="https://github.com/567-labs/instructor/pull/2902">Mistral reask retry fix — landed as co-author</a></div>
+          <div class="pr-desc">Fixed a retry-path bug in the Mistral provider integration. The maintainer closed my PR #2864 and merged the same fix as #2902, carrying my commit over as co-author.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">✅ Approved</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">lancedb/lancedb · #4772</div>
+          <div class="pr-title"><a href="https://github.com/lancedb/lancedb/pull/4772">fix(python): fetch minimum rank-fusion window per side in hybrid search</a></div>
+          <div class="pr-desc">Each side of a hybrid query fetched only <code>limit + offset</code> rows before rank fusion, so asking for fewer results could return a different top result instead of just a shorter list. Both hybrid paths now fetch a minimum window of 50 rows per side. Approved; awaiting maintainer merge.</div>
+        </div>
+      </div>
 
       <div class="pr-card">
         <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
         <div class="pr-body">
-          <div class="pr-repo">vllm-project/vllm · #47662</div>
-          <div class="pr-title"><a href="https://github.com/vllm-project/vllm/pull/47662"><code>/v1/responses</code> endpoint rejects valid <code>input_audio</code> content parts with 422</a></div>
-          <div class="pr-desc">The Responses API accepted text/image but silently excluded <code>ResponseInputAudioParam</code> from its Pydantic union, rejecting any audio-bearing message at validation time — while the chat completions endpoint accepted identical payloads. Fix: extended the union with an audio-capable TypedDict variant.</div>
+          <div class="pr-repo">BerriAI/litellm · #51005</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/51005">fix(main): reject chat completions on decisions-only deployments</a></div>
+          <div class="pr-desc">A <code>hosted_vllm</code> deployment with <code>mode: decisions</code> was accepted on <code>/v1/chat/completions</code> and forwarded to an upstream with no such route, returning an opaque <code>NotFoundError</code>. The router now fails fast with a clear 400 before the upstream call. Approved in review; awaiting CI and a maintainer merge.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #50214</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/50214">fix(proxy): redact guardrail-blocked request body from spend logs</a></div>
+          <div class="pr-desc">The proxy snapshots the request body before guardrails run and refreshes it only after they pass — so when a guardrail blocked a request, the failure logger persisted the raw body, secret included. The stored body is now replaced with a redacted placeholder on a block; the block itself is unchanged.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">weaviate/weaviate-python-client · #2262</div>
+          <div class="pr-title"><a href="https://github.com/weaviate/weaviate-python-client/pull/2262">fix(batch): stop a stale stream sender from stealing requests after a fast reconnect</a></div>
+          <div class="pr-desc">After a hang-up, if the reconnect finished inside the old sender's 1s queue wait, the stale sender could wake, take the next request, and drop it into the dead stream — losing the batch silently and wedging every later <code>add_object</code>. A stream generation counter makes stale senders hand requests back to the live stream. Fixed in both the sync and async clients.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">weaviate/weaviate-python-client · #2267</div>
+          <div class="pr-title"><a href="https://github.com/weaviate/weaviate-python-client/pull/2267">fix(batch): report a per-object encoding failure instead of failing the whole batch</a></div>
+          <div class="pr-desc">One object that failed client-side encoding aborted the whole batch — and in streaming mode killed the send loop, silently dropping every unsent object. Objects are now encoded one by one; a failure is recorded as that object's own error, naming its UUID, and the rest of the batch is sent.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">vllm-project/vllm · #64851</div>
+          <div class="pr-title"><a href="https://github.com/vllm-project/vllm/pull/64851"><code>/v1/responses</code> endpoint rejects valid <code>input_audio</code> content parts with 422</a></div>
+          <div class="pr-desc">The Responses API accepted text and image parts but silently excluded <code>ResponseInputAudioParam</code> from its Pydantic union, rejecting any audio-bearing message at validation time — while chat completions accepted identical payloads. Fix: extend the union with an audio-capable variant. Supersedes #47662; rebased onto current main.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">vllm-project/vllm · #67643</div>
+          <div class="pr-title"><a href="https://github.com/vllm-project/vllm/pull/67643">[Bugfix][Compilation] Remove <code>AllReduceFusionPass.__del__</code> destroying the shared FlashInfer workspace</a></div>
+          <div class="pr-desc">The fusion pass's <code>__del__</code> destroyed the process-global FlashInfer all-reduce workspace on garbage collection — while compiled callables, CUDA graphs, and communicators could still be using it. Workspace lifetime is owned by the process and the communicator (destroy is atexit-registered), so the pass-level destructor is removed, with a behavioral regression test pinning that the pass does not own the workspace.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #52554</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/52554">fix(vertex_ai): keep the thought signature on a replayed assistant image</a></div>
+          <div class="pr-desc">A generated image replayed as assistant history lost its thought signature — the history converter attached it to no part, so the image reached Gemini unsigned. The converter now resolves the signature once per message and puts it on the first image part when no text part already carries it.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #52547</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/52547">fix(azure_ai): raise BadRequestError for invalid FLUX 2 image edit input</a></div>
+          <div class="pr-desc">Invalid FLUX 2 image-edit input raised a bare <code>ValueError</code>, which the proxy surfaces as HTTP 500 — so clients retried requests that could never succeed. All four input checks now raise <code>BadRequestError</code> (HTTP 400), matching the merged Vertex AI Gemini fix.</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">BerriAI/litellm · #52529</div>
+          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/52529">fix(fal_ai): raise BadRequestError when an image edit request has no image</a></div>
+          <div class="pr-desc">The same failure shape on the Fal AI path: an image edit with no image raised <code>ValueError</code>, surfaced as HTTP 500 and retried endlessly by clients. Both Fal image-edit configs now raise <code>BadRequestError</code> (HTTP 400).</div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
+        <div class="pr-body">
+          <div class="pr-repo">qdrant/qdrant-client · #1661</div>
+          <div class="pr-title"><a href="https://github.com/qdrant/qdrant-client/pull/1661">fix(local): reject non-object payloads on <code>set_payload</code> / <code>overwrite_payload</code></a></div>
+          <div class="pr-desc">Local mode accepted non-object payloads that the server would reject, so bad writes surfaced later and stranger. Payload writes and collection metadata updates now fail fast with a clear error, matching server semantics.</div>
         </div>
       </div>
 
@@ -135,69 +252,6 @@
           <div class="pr-repo">stanfordnlp/dspy · #9979</div>
           <div class="pr-title"><a href="https://github.com/stanfordnlp/dspy/pull/9979">MIPROv2 silently discards hand-labeled demos — proposer sees "No task demos provided"</a></div>
           <div class="pr-desc">The <code>gather_examples_from_sets</code> helper filtered for the <code>"augmented"</code> key, which only exists on LLM-bootstrapped demos. Hand-labeled training examples never carry it, so they were dropped silently. The optimizer then generated instructions without ever seeing the user's labeled data.</div>
-        </div>
-      </div>
-
-      <div class="pr-card">
-        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
-        <div class="pr-body">
-          <div class="pr-repo">567-labs/instructor · #2412</div>
-          <div class="pr-title"><a href="https://github.com/567-labs/instructor/pull/2412"><code>Optional[NestedModel]</code> fields stored as raw dicts in streaming partial objects</a></div>
-          <div class="pr-desc"><code>_build_partial_object</code> used <code>isinstance(field_type, type)</code> to decide whether to recurse into a nested model. That guard returns <code>False</code> for <code>Optional[NestedModel]</code> (a generic alias, not a <code>type</code>), so those fields were stored as raw dicts — causing <code>AttributeError</code> mid-stream when code accessed <code>chunk.inner.some_field</code>.</div>
-        </div>
-      </div>
-
-      <div class="pr-card">
-        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
-        <div class="pr-body">
-          <div class="pr-repo">huggingface/trl · #6297</div>
-          <div class="pr-title"><a href="https://github.com/huggingface/trl/pull/6297">NaN logprobs crash in GRPO trainer when using vLLM importance sampling</a></div>
-          <div class="pr-desc">vLLM emits NaN for near-deterministic tokens. <code>extract_logprobs()</code> converted these to <code>None</code>, then <code>torch.tensor([None])</code> raised <code>TypeError</code>. Fix: convert <code>None</code> to <code>nan</code> before tensor construction, use <code>torch.where</code> for neutral importance-sampling weights.</div>
-        </div>
-      </div>
-
-      <div class="pr-card">
-        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
-        <div class="pr-body">
-          <div class="pr-repo">huggingface/peft · #3391</div>
-          <div class="pr-title"><a href="https://github.com/huggingface/peft/pull/3391"><code>update_and_allocate</code> unreachable after <code>inject_adapter_in_model</code></a></div>
-          <div class="pr-desc"><code>inject_adapter_in_model()</code> returned the bare inner <code>nn.Module</code>, stripping the <code>AdaLoraModel</code> wrapper that holds <code>update_and_allocate</code>. Calling it afterward raised <code>AttributeError</code>, silently breaking AdaLoRA's rank-reallocation schedule.</div>
-        </div>
-      </div>
-
-      <div class="pr-card">
-        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
-        <div class="pr-body">
-          <div class="pr-repo">BerriAI/litellm · #32205</div>
-          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32205"><code>previous_response_id</code> double-encoded in MCP tool loops</a></div>
-          <div class="pr-desc"><code>_update_responses_api_response_id_with_model_id</code> was not idempotent — repeated calls in MCP tool loops applied base64+URL encoding twice, producing ~730-char IDs that are rejected by downstream API calls.</div>
-        </div>
-      </div>
-
-      <div class="pr-card">
-        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
-        <div class="pr-body">
-          <div class="pr-repo">BerriAI/litellm · #32200</div>
-          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32200">Async cache streaming drops <code>reasoning_content</code></a></div>
-          <div class="pr-desc">When serving a cached response as a stream, the async path reconstructed chunks from the stored message but never forwarded <code>reasoning_content</code>. Applications relying on chain-of-thought tokens received empty strings silently.</div>
-        </div>
-      </div>
-
-      <div class="pr-card">
-        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
-        <div class="pr-body">
-          <div class="pr-repo">BerriAI/litellm · #32199</div>
-          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32199"><code>reasoning_tokens</code> forced to <code>0</code> in Responses API proxy</a></div>
-          <div class="pr-desc">The Responses API proxy hardcoded <code>reasoning_tokens: 0</code> in the usage block regardless of the actual token count returned by the upstream model. Downstream cost attribution and budget tracking silently received wrong values.</div>
-        </div>
-      </div>
-
-      <div class="pr-card">
-        <div class="pr-badge"><span class="badge open">🟢 Open</span></div>
-        <div class="pr-body">
-          <div class="pr-repo">BerriAI/litellm · #32198</div>
-          <div class="pr-title"><a href="https://github.com/BerriAI/litellm/pull/32198"><code>stream_chunk_builder</code> KeyError on missing <code>choices</code></a></div>
-          <div class="pr-desc">Certain streaming providers emit non-choice chunks (heartbeats, metadata). <code>stream_chunk_builder</code> indexed <code>chunk["choices"]</code> unconditionally, raising <code>KeyError</code> and aborting the entire stream.</div>
         </div>
       </div>
 
@@ -235,6 +289,36 @@
   <div class="section">
     <div class="section-title">Writing</div>
     <div class="post-list">
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">LLM</span><span class="tag">vLLM</span><span class="tag">API design</span><span class="tag">bugs</span></div>
+        <h3><a href="/posts/500-on-user-input-is-validation-bug.html">A 500 on User Input Is Always a Validation Bug</a></h3>
+        <p>vLLM's Responses API 500'd on an empty assistant content list. The fix: reject at the boundary with a 400, per the team's own precedent — and validate the invariants your downstream code assumes, not just the shapes your schema declares.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">LLM</span><span class="tag">caching</span><span class="tag">litellm</span><span class="tag">bugs</span></div>
+        <h3><a href="/posts/cache-key-missing-destination.html">Your Cache Key Is Missing the Destination</a></h3>
+        <p>LiteLLM's response cache keyed on model, messages, and params — but not api_base. Two backends, one cache key, silent cross-tenant poisoning. Enumerate your cache key dimensions explicitly.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">AI tools</span><span class="tag">developer workflow</span><span class="tag">claude code</span><span class="tag">context</span></div>
+        <h3><a href="/posts/multi-tool-ai-memory.html">Why Native AI Memory Fails Multi-Tool Workflows</a></h3>
+        <p>Claude Code, Cursor, Copilot, ChatGPT, Gemini — each has its own memory system and none of them talk to each other. Here's the structural reason why, and the sync pattern that actually works.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">claude code</span><span class="tag">productivity</span><span class="tag">workflow</span></div>
+        <h3><a href="/posts/claude-code-memory-persistence.html">Claude Code Has No Memory. Here's How to Fix That.</a></h3>
+        <p>Every Claude Code session starts blank. CLAUDE.md helps, but there's more — from auto-memory to cloud sync. A practical guide to persistent context.</p>
+      </div>
+
+      <div class="post-card">
+        <div class="tags"><span class="tag">claude code</span><span class="tag">CLAUDE.md</span><span class="tag">developer tools</span></div>
+        <h3><a href="/posts/claude-md-guide.html">CLAUDE.md: Everything You Can Put in Claude Code's Memory File</a></h3>
+        <p>Three levels of hierarchy, cross-file imports, and a concrete example for each. A complete reference for the most underused feature in Claude Code.</p>
+      </div>
 
       <div class="post-card">
         <div class="tags"><span class="tag">fine-tuning</span><span class="tag">LoRA</span><span class="tag">RAG</span><span class="tag">prompting</span></div>
