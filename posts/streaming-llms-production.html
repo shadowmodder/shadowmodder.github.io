@@ -77,6 +77,11 @@
     .article-header h1 { font-size: 24px; }
     .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
   }
+
+  .signature { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--border); }
+  .signature .sig-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 12px; }
+  .signature .sig-name { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-style: italic; color: var(--text); margin-bottom: 6px; }
+  .signature .sig-line { font-size: 12.5px; color: var(--muted); letter-spacing: .02em; line-height: 1.75; }
 </style>
 </head>
 <body>
@@ -492,6 +497,13 @@ async def stream_with_stall_detection(
     </a>
 
     <p>Streaming LLMs is not hard to implement in a demo. It's hard to implement correctly under production conditions: intermittent networks, variable client hardware, proxy infrastructure that wasn't designed for long-lived HTTP responses, and the specific quirks of tool call serialization. The patterns above are each independently necessary — there's no single fix that covers all six failure modes. Ship them as a unit or you'll encounter the ones you skipped in your next 2am incident.</p>
+
+    <div class="signature">
+      <div class="sig-label">Correspondence</div>
+      <div class="sig-name">Sudhir Vissa</div>
+      <p class="sig-line">AI/ML Leader &nbsp;·&nbsp; Sage7 AI &nbsp;·&nbsp; Austin, Texas<br>
+      sudhir.vissa@sage7.ai &nbsp;·&nbsp; <a href="https://shadowmodder.github.io">shadowmodder.github.io</a> &nbsp;·&nbsp; <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a></p>
+    </div>
 
   </article>
 </div>

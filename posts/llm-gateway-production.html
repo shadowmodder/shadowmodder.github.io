@@ -77,6 +77,11 @@
     .article-header h1 { font-size: 24px; }
     .site-header .inner { flex-direction: column; gap: 12px; align-items: flex-start; }
   }
+
+  .signature { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--border); }
+  .signature .sig-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 12px; }
+  .signature .sig-name { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-style: italic; color: var(--text); margin-bottom: 6px; }
+  .signature .sig-line { font-size: 12.5px; color: var(--muted); letter-spacing: .02em; line-height: 1.75; }
 </style>
 </head>
 <body>
@@ -317,6 +322,13 @@ response = gateway.complete(
     <p>The meta-point: LLM API reliability engineering is infrastructure work, not application work. The same patterns that make distributed systems reliable — circuit breakers, rate limiting, retry budgets, cost attribution — apply here. The failure modes are different in detail but identical in structure. Engineers who've operated microservices at scale will recognize most of this. Engineers who haven't will learn it the hard way on their billing dashboard at 2am.</p>
 
     <p>Build the gateway layer before you need it. Retrofitting retry logic into 15 different service integrations after the first production incident is the more expensive path.</p>
+
+    <div class="signature">
+      <div class="sig-label">Correspondence</div>
+      <div class="sig-name">Sudhir Vissa</div>
+      <p class="sig-line">AI/ML Leader &nbsp;·&nbsp; Sage7 AI &nbsp;·&nbsp; Austin, Texas<br>
+      sudhir.vissa@sage7.ai &nbsp;·&nbsp; <a href="https://shadowmodder.github.io">shadowmodder.github.io</a> &nbsp;·&nbsp; <a href="https://linkedin.com/in/sudhirvissa">LinkedIn</a></p>
+    </div>
 
   </article>
 </div>
